@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Ventum House – Daily Report</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;color:#1a1a1a;padding:16px;max-width:560px;margin:0 auto}
+h1{font-size:17px;font-weight:700;margin-bottom:2px}
+.sub{font-size:12px;color:#888;margin-bottom:16px}
+.card{background:#fff;border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.card h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#999;margin-bottom:12px}
+.field{margin-bottom:10px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:3px}
+input[type=date],input[type=number],input[type=text]{width:100%;border:1.5px solid #e0e0e0;border-radius:7px;padding:10px 11px;font-size:15px;font-family:inherit;background:#fff;-webkit-appearance:none}
+input:focus{outline:none;border-color:#6366f1}
+textarea{width:100%;border:1.5px solid #e0e0e0;border-radius:7px;padding:10px 11px;font-size:13px;font-family:inherit;resize:vertical;min-height:60px}
+textarea:focus{outline:none;border-color:#6366f1}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn:active{opacity:.8}
+.bp{background:#6366f1;color:#fff;margin-bottom:8px}
+.bg{background:#16a34a;color:#fff}
+.bn{background:#f0f0f0;color:#444}
+.div{border:none;border-top:1px solid #f0f0f0;margin:12px 0}
+.sr{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.st{flex:1;min-width:80px;background:#f9f9f9;border-radius:7px;padding:8px 10px}
+.st label{font-size:10px;color:#888;display:block;margin-bottom:1px}
+.st .v{font-size:14px;font-weight:700}
+.good{color:#16a34a}.bad{color:#dc2626}.neu{color:#1a1a1a}
+.dl{font-weight:600;font-size:13px;margin-bottom:5px;width:100%}
+.rbox{background:#1a1a2e;color:#e8e8e8;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;white-space:pre-wrap;line-height:1.6;max-height:600px;overflow-y:auto;margin-bottom:10px}
+.hint{font-size:11px;color:#aaa;margin-top:2px}
+.sm{font-size:13px;color:#888;text-align:center;padding:6px 0}
+.warn{background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:10px}
+.tgt-toggle{font-size:12px;color:#6366f1;cursor:pointer;text-decoration:underline;margin-bottom:10px;display:inline-block}
+#tgtArea{display:none}
+.saved-badge{font-size:11px;color:#16a34a;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>🚴 Ventum House – Daily Report</h1>
+<p class="sub">Enter today's figures, generate the Slack report.</p>
+
+<!-- TARGETS (saved per month) -->
+<div class="card">
+  <h2>📅 Date &amp; Targets</h2>
+  <div class="field">
+    <label>Report Date</label>
+    <input type="date" id="dailyDate" onchange="loadTargets()">
+  </div>
+  <span class="tgt-toggle" onclick="toggleTgt()">⚙️ Set monthly targets <span id="tgtSaved" class="saved-badge"></span></span>
+  <div id="tgtArea">
+    <p class="hint" style="margin-bottom:8px">Set once per month — saved on your device.</p>
+    <div class="row2">
+      <div class="field"><label>Retail Target (AED/day)</label><input type="number" id="tRet" placeholder="e.g. 9089" min="0"></div>
+      <div class="field"><label>Service Target (AED/day)</label><input type="number" id="tSer" placeholder="e.g. 937" min="0"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Coffee Target (AED/day)</label><input type="number" id="tCof" placeholder="e.g. 1579" min="0"></div>
+      <div class="field"><label>Month full name</label><input type="text" id="tMonth" placeholder="e.g. June"></div>
+    </div>
+    <button class="btn bn" style="margin-top:4px" onclick="saveTargets()">Save Targets</button>
+  </div>
+</div>
+
+<!-- DAILY FIGURES -->
+<div class="card">
+  <h2>💼 Retail</h2>
+  <div class="row2">
+    <div class="field"><label>Sales (AED)</label><input type="number" id="rA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
+    <div class="field"><label>Transactions</label><input type="number" id="rTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
+  </div>
+  <div class="field"><label>What was sold? <span style="font-weight:400;color:#aaa">(optional)</span></label><textarea id="rB" placeholder="e.g. NS1 Gen 3 with Force groupset and ENVE wheelset"></textarea></div>
+</div>
+
+<div class="card">
+  <h2>🔧 Service</h2>
+  <div class="row2">
+    <div class="field"><label>Sales (AED)</label><input type="number" id="sA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
+    <div class="field"><label>Jobs</label><input type="number" id="sTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
+  </div>
+  <div class="field"><label>Job breakdown <span style="font-weight:400;color:#aaa">(optional)</span></label><textarea id="sB" placeholder="e.g. 2x Gold, 1x Silver labour only"></textarea></div>
+</div>
+
+<div class="card">
+  <h2>☕ Coffee</h2>
+  <div class="row2">
+    <div class="field"><label>Sales (AED)</label><input type="number" id="cA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
+    <div class="field"><label>Transactions</label><input type="number" id="cTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Deliveroo (AED)</label><input type="number" id="iDel" placeholder="0" min="0" oninput="calcTotals()"></div>
+    <div class="field"><label>Careem (AED)</label><input type="number" id="iCar" placeholder="0" min="0" oninput="calcTotals()"></div>
+  </div>
+  <div class="field"><label>Keeta (AED)</label><input type="number" id="iKee" placeholder="0" min="0" oninput="calcTotals()"></div>
+</div>
+
+<div class="card">
+  <h2>👥 Footfall</h2>
+  <div class="row2">
+    <div class="field"><label>Visitors today</label><input type="number" id="ffTY" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
+    <div class="field"><label>Conversion %</label><input type="text" id="cvTY" placeholder="auto" oninput="calcTotals()"><p class="hint">Leave blank to auto-calculate</p></div>
+  </div>
+</div>
+
+<!-- TOTALS PREVIEW -->
+<div class="card" id="totCard" style="display:none">
+  <h2>📊 Today's Figures</h2>
+  <div id="dR" class="sr"></div>
+  <div id="dS" class="sr"></div>
+  <div id="dC" class="sr"></div>
+  <div id="dT" class="sr"></div>
+  <div id="dF" class="sr"></div>
+</div>
+
+<!-- NARRATIVE -->
+<div class="card">
+  <h2>✏️ Report Commentary</h2>
+  <button class="btn bp" onclick="writeAll()">✨ Write Narratives</button>
+  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Opening Summary</label>
+  <textarea id="dSum" style="min-height:80px" placeholder="Click Write Narratives above"></textarea>
+  <hr class="div">
+  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
+  <textarea id="dKI" style="min-height:110px" placeholder="Click Write Narratives above"></textarea>
+  <hr class="div">
+  <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
+</div>
+
+<!-- OUTPUT -->
+<div class="card" id="repCard" style="display:none">
+  <h2>📋 Slack Report</h2>
+  <div class="rbox" id="repOut"></div>
+  <button class="btn bg" id="cpBtn" onclick="cpRep()">Copy to Clipboard</button>
+</div>
+
+<script>
+const MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+(function(){
+  const now=new Date();
+  const s=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  document.getElementById('dailyDate').value=s;
+  loadTargets();
+})();
+
+function p(s){if(!s&&s!==0)return 0;const n=parseFloat(String(s).replace(/,/g,''));return isNaN(n)?0:n;}
+function f(n){return Math.round(n).toLocaleString();}
+function yoy(ty,ly){if(!ly)return'N/A';const v=((ty-ly)/ly*100).toFixed(1);return(v>=0?'+':'')+v+'%';}
+function st(lbl,val,cls){return'<div class="st"><label>'+lbl+'</label><div class="v '+cls+'">'+val+'</div></div>';}
+function slk(s){const[y,m,d]=s.split('-').map(Number);const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];return days[new Date(y,m-1,d).getDay()]+', '+MF[m-1]+' '+d+', '+y;}
+function sf(s){const[y,m,d]=s.split('-').map(Number);return d+'-'+MS[m-1]+'-'+String(y).slice(-2);}
+
+function toggleTgt(){
+  const a=document.getElementById('tgtArea');
+  a.style.display=a.style.display==='none'?'block':'none';
+}
+
+function getMonthKey(){
+  const dv=document.getElementById('dailyDate').value;
+  if(!dv)return null;
+  return 'ventum_tgt_'+dv.slice(0,7);
+}
+
+function loadTargets(){
+  const k=getMonthKey();if(!k)return;
+  try{
+    const t=JSON.parse(localStorage.getItem(k)||'null');
+    if(t){
+      document.getElementById('tRet').value=t.rT||'';
+      document.getElementById('tSer').value=t.sT||'';
+      document.getElementById('tCof').value=t.cT||'';
+      document.getElementById('tMonth').value=t.month||'';
+      document.getElementById('tgtSaved').textContent='✓ saved';
+    }else{
+      document.getElementById('tgtSaved').textContent='';
+    }
+  }catch(e){}
+  calcTotals();
+}
+
+function saveTargets(){
+  const k=getMonthKey();if(!k){alert('Set a date first.');return;}
+  try{
+    localStorage.setItem(k,JSON.stringify({
+      rT:p(document.getElementById('tRet').value),
+      sT:p(document.getElementById('tSer').value),
+      cT:p(document.getElementById('tCof').value),
+      month:document.getElementById('tMonth').value.trim()
+    }));
+    document.getElementById('tgtSaved').textContent='✓ saved';
+    document.getElementById('tgtArea').style.display='none';
+    calcTotals();
+  }catch(e){alert('Could not save — check browser settings.');}
+}
+
+function getTargets(){
+  const k=getMonthKey();
+  try{return JSON.parse(localStorage.getItem(k)||'null')||{rT:0,sT:0,cT:0,month:''};}catch(e){return{rT:0,sT:0,cT:0,month:''};}
+}
+
+function getData(){
+  const tgt=getTargets();
+  const dv=document.getElementById('dailyDate').value;
+  const rA=p(document.getElementById('rA').value);
+  const sA=p(document.getElementById('sA').value);
+  const cA=p(document.getElementById('cA').value);
+  const rTx=p(document.getElementById('rTx').value);
+  const sTx=p(document.getElementById('sTx').value);
+  const cTx=p(document.getElementById('cTx').value);
+  const ffTY=p(document.getElementById('ffTY').value);
+  const del=p(document.getElementById('iDel').value);
+  const car=p(document.getElementById('iCar').value);
+  const kee=p(document.getElementById('iKee').value);
+  const tTx=rTx+sTx+cTx;
+  let cvTY=document.getElementById('cvTY').value.trim();
+  if(!cvTY&&ffTY>0) cvTY=(tTx/ffTY*100).toFixed(1)+'%';
+  return{
+    date:dv,sd:sf(dv),
+    rA,rT:tgt.rT,rLY:0,rTx,
+    sA,sT:tgt.sT,sLY:0,sTx,
+    cA,cT:tgt.cT,cLY:0,cTx,
+    tA:rA+sA+cA,tT:tgt.rT+tgt.sT+tgt.cT,tLY:0,tTx,
+    ffTY,ffLY:0,cvTY,cvLY:'',
+    del,car,kee,month:tgt.month||MF[parseInt(dv.split('-')[1])-1]||''
+  };
+}
+
+function calcTotals(){
+  const d=getData();
+  if(!d.date)return;
+  const anyData=d.rA>0||d.sA>0||d.cA>0;
+  document.getElementById('totCard').style.display=anyData?'block':'none';
+  if(!anyData)return;
+  const rP=d.rT>0?(d.rA/d.rT*100).toFixed(1)+'%':'N/A';
+  const sP=d.sT>0?(d.sA/d.sT*100).toFixed(1)+'%':'N/A';
+  const cP=d.cT>0?(d.cA/d.cT*100).toFixed(1)+'%':'N/A';
+  const tP=d.tT>0?(d.tA/d.tT*100).toFixed(1)+'%':'N/A';
+  document.getElementById('dR').innerHTML='<div class="dl">Retail</div>'+st('Sales','AED '+f(d.rA),'neu')+st('Target',d.rT>0?'AED '+f(d.rT):'—','neu')+st('Achievement',rP,d.rA>=d.rT&&d.rT>0?'good':'bad')+st('Tx',d.rTx,'neu')+st('ATV',d.rTx>0?'AED '+f(d.rA/d.rTx):'—','neu');
+  document.getElementById('dS').innerHTML='<div class="dl">Service</div>'+st('Sales','AED '+f(d.sA),'neu')+st('Target',d.sT>0?'AED '+f(d.sT):'—','neu')+st('Achievement',sP,d.sA>=d.sT&&d.sT>0?'good':'bad')+st('Tx',d.sTx,'neu')+st('ATV',d.sTx>0?'AED '+f(d.sA/d.sTx):'—','neu');
+  document.getElementById('dC').innerHTML='<div class="dl">Coffee</div>'+st('Sales','AED '+f(d.cA),'neu')+st('Target',d.cT>0?'AED '+f(d.cT):'—','neu')+st('Achievement',cP,d.cA>=d.cT&&d.cT>0?'good':'bad')+st('Tx',d.cTx,'neu')+st('ATV',d.cTx>0?'AED '+f(d.cA/d.cTx):'—','neu');
+  document.getElementById('dT').innerHTML='<div class="dl">Store Total</div>'+st('Sales','AED '+f(d.tA),'neu')+st('Target',d.tT>0?'AED '+f(d.tT):'—','neu')+st('Achievement',tP,d.tA>=d.tT&&d.tT>0?'good':'bad')+st('Tx',d.tTx,'neu')+st('ATV',d.tTx>0?'AED '+f(d.tA/d.tTx):'—','neu');
+  document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'—','neu');
+}
+
+function writeAll(){
+  const d=getData();
+  const rB=document.getElementById('rB').value.trim();
+  const sB=document.getElementById('sB').value.trim();
+  const sBc=sB.replace(/\.{2,}/g,',').replace(/,\s*,/g,',').replace(/\s+/g,' ').replace(/,\s*$/,'').trim();
+  const rP=d.rT>0?(d.rA/d.rT*100):0;
+  const sP=d.sT>0?(d.sA/d.sT*100):0;
+  const cP=d.cT>0?(d.cA/d.cT*100):0;
+  const tP=d.tT>0?(d.tA/d.tT*100):0;
+  const rAb=d.rA>=d.rT&&d.rT>0,sAb=d.sA>=d.sT&&d.sT>0,cAb=d.cA>=d.cT&&d.cT>0,tAb=d.tA>=d.tT&&d.tT>0;
+  const allAbove=rAb&&sAb&&cAb,noneAbove=!rAb&&!sAb&&!cAb;
+  const rATV=d.rTx>0?Math.round(d.rA/d.rTx):0;
+  const sATV=d.sTx>0?Math.round(d.sA/d.sTx):0;
+  const cATV=d.cTx>0?Math.round(d.cA/d.cTx):0;
+  const conv=parseFloat(d.cvTY)||0;
+  const tGap=Math.abs(Math.round(d.tA-d.tT));
+  const rGap=Math.abs(Math.round(d.rA-d.rT));
+
+  let op='';
+  if(!d.rT){
+    op='Figures entered for '+slk(d.date)+'. Targets not set — tap Set monthly targets above to enable performance analysis.';
+  }else if(tP>=150){
+    op='An exceptional trading day'+(rB?' — '+rB.toLowerCase()+' among the highlights,':' — strong performance across the floor,')+' finishing AED '+f(tGap)+' ahead of target at '+Math.round(tP)+'% achievement. '+(allAbove?'All three departments delivered above their individual targets.':'A standout result.');
+  }else if(tP>=100&&allAbove){
+    op='A strong day all round — all three departments above target with total store finishing at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' ahead.'+(rB?' Retail featured '+rB.toLowerCase()+'.':'');
+  }else if(tP>=100&&!allAbove){
+    const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
+    const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
+    const abvStr=abv.join(' and ');
+    op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' carried the day despite '+blw.join(' and ')+' finishing below target — total store landed AED '+f(tGap)+' ahead at '+Math.round(tP)+'% achievement.'+(rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
+  }else if(noneAbove&&tP<50){
+    op='A very quiet day across all three departments — total store finished at '+Math.round(tP)+'% of target, AED '+f(tGap)+' short.'+(rB?' Retail was limited to '+rB.toLowerCase()+', with no premium transactions to move the needle.':' No premium retail transactions today.')+' '+(sBc?'Service completed '+sBc.toLowerCase()+'.':'Service ran below required levels.')+' The priority for tomorrow is anchoring the day with a strong retail sale.';
+  }else if(noneAbove){
+    op='All three departments below target today — total store finished at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' short.'+(rB?' Retail had '+rB.toLowerCase()+' but lacked the high-value transactions needed to drive total performance.':' Retail lacked the premium transactions needed to move the store number.')+' Service and coffee both finished below daily pacing.';
+  }else{
+    const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
+    const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
+    if(tAb){
+      const abvStr=abv.join(' and ');
+      op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' pushed total store above daily pacing at '+Math.round(tP)+'% achievement despite '+blw.join(' and ')+' below target.'+(rB&&rAb?' Retail featured '+rB.toLowerCase()+'.':'');
+    }else{
+      const mainBlame=!rAb?'retail':!sAb?'service':'coffee';
+      const abvStr=abv.length?abv.join(' and '):null;
+      const lead=abvStr?abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' above target, but '+mainBlame:mainBlame.charAt(0).toUpperCase()+mainBlame.slice(1);
+      const retailNote=mainBlame==='retail'&&d.rTx<=3?' with only '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' on the day':' below target';
+      op=lead+retailNote+' left the store AED '+f(tGap)+' short at '+Math.round(tP)+'% achievement.'+(rB&&!rAb?' Retail included '+rB.toLowerCase()+' but did not generate enough volume.':rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
+    }
+  }
+
+  const kp=[];
+  if(rP>=200) kp.push(rB?rB.charAt(0).toUpperCase()+rB.slice(1)+' — exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
+  else if(rP>=100) kp.push('Retail ahead of target'+(rB?' — '+rB.toLowerCase():'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
+  else if(rP>=50) kp.push('Retail below target — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV, AED '+f(rGap)+' short'+(rB?'. '+rB.charAt(0).toUpperCase()+rB.slice(1):''));
+  else if(d.rTx===0) kp.push('No retail transactions today — service and coffee carried the floor');
+  else kp.push('Quiet retail day — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV'+(d.rT>0?', AED '+f(rGap)+' short of target':''));
+  if(sP>=150) kp.push('Service strong today'+(sBc?' — '+sBc.toLowerCase()+(sBc.slice(-1).match(/[.,]/)?'':',')+' ':' — ')+d.sTx+' job'+(d.sTx!==1?'s':'')+' at AED '+f(sATV)+' ATV');
+  else if(sP>=100) kp.push('Service above target'+(sBc?' — '+sBc.toLowerCase()+(sBc.slice(-1).match(/[.,]/)?'':',')+' ':' — ')+d.sTx+' job'+(d.sTx!==1?'s':'')+' at AED '+f(sATV)+' ATV');
+  else if(sP>=60) kp.push('Service below target — '+d.sTx+' job'+(d.sTx!==1?'s':'')+' completed'+(sBc?', '+sBc.toLowerCase():'')+'. Tier upgrades are the biggest opportunity');
+  else kp.push('Service below target'+(sBc?' — '+sBc.toLowerCase():'')+'. Workshop has capacity; proactive bookings tomorrow will change the number');
+  if(cP>=110) kp.push('Coffee ahead of target — '+d.cTx+' transactions at AED '+f(cATV)+' ATV');
+  else if(cP>=90) kp.push('Coffee broadly on track — '+d.cTx+' transactions at AED '+f(cATV)+' ATV');
+  else kp.push('Coffee below target — '+d.cTx+' transactions at AED '+f(cATV)+' ATV. Peak hours and delivery are the opportunity');
+  if(conv>=15) kp.push('Conversion at '+d.cvTY+' from '+f(d.ffTY)+' visitors — strong execution on the floor today');
+  else if(conv>0&&conv<12&&d.ffTY>100) kp.push('Conversion at '+d.cvTY+' from '+f(d.ffTY)+' visitors — the biggest in-store lever available right now');
+  if(kp.length<5){
+    if(!tAb&&tGap>0&&d.rT>0){
+      const lever=!rAb?'a single premium retail transaction':'growing service tier mix';
+      kp.push('Store is AED '+f(tGap)+' short of the daily target — '+lever+' tomorrow is the fastest route back to pacing');
+    }else{
+      kp.push('The floor is converting well — building footfall through community activity and marketing will compound that conversion into more transactions');
+    }
+  }
+  document.getElementById('dSum').value=op;
+  document.getElementById('dKI').value=kp.slice(0,5).join('\n');
+}
+
+function genReport(){
+  const d=getData();
+  const rB=document.getElementById('rB').value.trim();
+  const sB=document.getElementById('sB').value.trim();
+  const sum=document.getElementById('dSum').value.trim();
+  const ki=document.getElementById('dKI').value.trim();
+  const totDel=d.del+d.car+d.kee;
+  const ins=Math.max(0,d.cA-totDel);
+  const insPct=d.cA>0?((ins/d.cA)*100).toFixed(0):0;
+  const delPct=d.cA>0?((totDel/d.cA)*100).toFixed(0):0;
+  const rA=d.rT>0?(d.rA/d.rT*100).toFixed(1):'—';
+  const sA=d.sT>0?(d.sA/d.sT*100).toFixed(1):'—';
+  const cA=d.cT>0?(d.cA/d.cT*100).toFixed(1):'—';
+  const tA=d.tT>0?(d.tA/d.tT*100).toFixed(1):'—';
+  const rD=d.rA-d.rT,sD=d.sA-d.sT,cD=d.cA-d.cT,tD=d.tA-d.tT;
+  const kiLines=ki?ki.split('\n').filter(l=>l.trim()).map(l=>'• '+l.trim().replace(/^•\s*/,'')).join('\n'):'';
+
+  const rep=
+'────────────────────────\n'+
+'Ventum House – Daily Report\n'+
+':calendar: '+slk(d.date)+'\n'+
+(sum?sum+'\n':'')+
+'────────────────────────\n'+
+'Daily Performance Summary\n'+
+'Retail (In-store)\n'+
+(d.rT?'• Target: AED '+f(d.rT)+'\n':'')+
+'• Sales: AED '+f(d.rA)+'\n'+
+(d.rT?'• Achievement: '+rA+'%\n':'')+ 
+(d.rT?'• '+(rD>=0?'Surplus':'Shortfall')+': AED '+f(Math.abs(rD))+'\n':'')+
+(rB?'Breakdown:\n '+rB+'\n':'')+
+'• Transactions: '+d.rTx+'\n'+
+'• ATV: AED '+(d.rTx>0?f(d.rA/d.rTx):'—')+'\n'+
+'────────────────────────\n'+
+'Service\n'+
+(d.sT?'• Target: AED '+f(d.sT)+'\n':'')+
+'• Sales: AED '+f(d.sA)+'\n'+
+(d.sT?'• Achievement: '+sA+'%\n':'')+
+(d.sT?'• '+(sD>=0?'Surplus':'Shortfall')+': AED '+f(Math.abs(sD))+'\n':'')+
+'Breakdown:\n'+
+' '+(sB||'(add service breakdown)')+'\n'+
+'• Transactions: '+d.sTx+'\n'+
+'• ATV: AED '+(d.sTx>0?f(d.sA/d.sTx):'—')+'\n'+
+'────────────────────────\n'+
+'Coffee\n'+
+(d.cT?'• Target: AED '+f(d.cT)+'\n':'')+
+'• Sales: AED '+f(d.cA)+'\n'+
+(d.cT?'• Achievement: '+cA+'%\n':'')+
+(d.cT?'• '+(cD>=0?'Surplus':'Shortfall')+': AED '+f(Math.abs(cD))+'\n':'')+
+'• In-store: AED '+f(ins)+' ('+insPct+'%)\n'+
+'• Delivery: AED '+f(totDel)+' ('+delPct+'%)\n'+
+'  – Deliveroo: AED '+f(d.del)+'\n'+
+'  – Careem: AED '+f(d.car)+'\n'+
+'  – Keeta: AED '+f(d.kee)+'\n'+
+'• Transactions: '+d.cTx+'\n'+
+'• ATV: AED '+(d.cTx>0?f(d.cA/d.cTx):'—')+'\n'+
+'────────────────────────\n'+
+'Store Totals\n'+
+(d.tT?'• Store Target: AED '+f(d.tT)+'\n':'')+
+'• Total Sales: AED '+f(d.tA)+'\n'+
+(d.tT?'• Achievement: '+tA+'%\n':'')+
+(d.tT?'• '+(tD>=0?'Surplus':'Shortfall')+': AED '+f(Math.abs(tD))+'\n':'')+
+'• Total Transactions: '+d.tTx+'\n'+
+'• Store ATV: AED '+(d.tTx>0?f(d.tA/d.tTx):'—')+'\n'+
+'────────────────────────\n'+
+'Footfall & Conversion\n'+
+'• Footfall: '+f(d.ffTY)+'\n'+
+'• Conversion: '+(d.cvTY||'—')+'\n'+
+'────────────────────────\n'+
+(kiLines?'Key Points\n'+kiLines+'\n────────────────────────\n':'')+
+'────────────────────────';
+
+  document.getElementById('repOut').textContent=rep;
+  document.getElementById('repCard').style.display='block';
+  document.getElementById('repCard').scrollIntoView({behavior:'smooth'});
+}
+
+async function cpRep(){
+  const text=document.getElementById('repOut').textContent;
+  const btn=document.getElementById('cpBtn');
+  try{
+    await navigator.clipboard.writeText(text);
+    btn.textContent='✓ Copied!';
+    setTimeout(()=>{btn.textContent='Copy to Clipboard';},2000);
+  }catch{
+    alert('Select the text above and copy manually.');
+  }
+}
+</script>
+</body>
+</html>
