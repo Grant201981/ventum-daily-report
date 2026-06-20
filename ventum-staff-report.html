@@ -224,32 +224,19 @@ async function loadFromSheet(){
 
     const rows=parseCSV(text);
 
-    // Find header row (the row whose first cell is "Date")
-    let hIdx=-1;
-    for(let i=0;i<rows.length;i++){if(rows[i][0]==='Date'){hIdx=i;break;}}
-    if(hIdx<0)throw new Error('Header row not found in sheet');
-
-    // Build column map from header names
-    const hdr=rows[hIdx];
-    const col={};
-    hdr.forEach((h,i)=>{col[h.trim()]=i;});
-
-    // Find row matching selected date
+    // Find row matching selected date directly (sheet has no header row)
     let dr=null;
-    for(let i=hIdx+1;i<rows.length;i++){
-      if(rows[i][0]===dateStr){dr=rows[i];break;}
-    }
+    for(let i=0;i<rows.length;i++){if(rows[i][0]===dateStr){dr=rows[i];break;}}
     if(!dr)throw new Error('Date '+dateStr+' not found in '+sheetName+' tab');
 
     const n=s=>{if(!s)return 0;const v=parseFloat(String(s).replace(/,/g,'').replace(/%/g,''));return isNaN(v)?0:v;};
-    const g=key=>(col[key]!==undefined?dr[col[key]]||'':'');
-
-    const rA=n(g('Retail Sales')),rTx=n(g('Retail Txns')),rT=n(g('Retail Target'));
-    const sA=n(g('Service Sales')),sTx=n(g('Service Txns')),sT=n(g('Service Target'));
-    const cA=n(g('Coffee Sales')),cTx=n(g('Coffee Txns')),cT=n(g('Coffee Target'));
-    const iCar=n(g('Careem')),iDel=n(g('Deliveroo')),iKee=n(g('Keeta'));
-    const ffTY=n(g('Footfall TY'));
-    const cvRaw=g('Conversion TY');
+    // Positional column mapping (sheet has no header row)
+    const rA=n(dr[1]),rTx=n(dr[2]),rT=n(dr[3]);
+    const sA=n(dr[5]),sTx=n(dr[6]),sT=0;
+    const cA=n(dr[8]),cTx=n(dr[9]),cT=n(dr[10]);
+    const iCar=n(dr[12]),iDel=n(dr[15]),iKee=n(dr[17]);
+    const ffTY=n(dr[32]);
+    const cvRaw=dr[34]||'';
 
     // Fill form fields (only overwrite if value is present)
     const setF=(id,val)=>{if(val)document.getElementById(id).value=val;};
