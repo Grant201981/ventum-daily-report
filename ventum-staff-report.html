@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v3</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v4</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -434,4 +434,92 @@ function writeAll(){
 
   const kp=[];
   if(rP>=200)kp.push(rB?rB.charAt(0).toUpperCase()+rB.slice(1)+' — exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
-  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' — '+rB.toLowerCase():'')+'. '+d.rTx+' t
+  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' â '+rB.toLowerCase():'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV.');
+  else if(d.rA>0)kp.push('Retail below target at '+Math.round(rP)+'% â '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+', AED '+f(Math.abs(Math.round(d.rA-d.rT)))+' short.'+(rB?' '+rB.charAt(0).toUpperCase()+rB.slice(1)+'.':''));
+  if(d.sT>0){
+    if(sAb)kp.push('Service above target at '+Math.round(sP)+'% â '+d.sTx+' job'+(d.sTx!==1?'s':'')+', AED '+f(sATV)+' ATV.');
+    else if(d.sA>0)kp.push('Service '+d.sTx+' job'+(d.sTx!==1?'s':'')+' for AED '+f(d.sA)+' ('+Math.round(sP)+'% of target).');
+    else kp.push('No service revenue today.');
+  }else if(d.sA>0){kp.push('Service: '+d.sTx+' job'+(d.sTx!==1?'s':'')+' for AED '+f(d.sA)+'.');}
+  if(d.cT>0){
+    if(cAb)kp.push('Coffee above target at '+Math.round(cP)+'% â '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+', AED '+f(cATV)+' ATV.');
+    else if(d.cA>0)kp.push('Coffee '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+' for AED '+f(d.cA)+' ('+Math.round(cP)+'% of target).');
+  }else if(d.cA>0){kp.push('Coffee: '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+' for AED '+f(d.cA)+'.');}
+  if(d.del>0||d.car>0||d.kee>0){
+    const dlv=[];
+    if(d.car>0)dlv.push('Careem AED '+f(d.car));
+    if(d.del>0)dlv.push('Deliveroo AED '+f(d.del));
+    if(d.kee>0)dlv.push('Keeta AED '+f(d.kee));
+    kp.push('Delivery: '+dlv.join(', ')+'.');
+  }
+  if(conv>0)kp.push('Footfall '+f(d.ffTY)+' visitors â conversion '+d.cvTY+'.');
+
+  document.getElementById('dSum').value=op;
+  document.getElementById('dKI').value=kp.join('\n');
+}
+
+function genReport(){
+  const d=getData();
+  const sum=document.getElementById('dSum').value.trim();
+  const ki=document.getElementById('dKI').value.trim();
+  if(!sum&&!ki){writeAll();}
+  const rP=d.rT>0?(d.rA/d.rT*100):0;
+  const sP=d.sT>0?(d.sA/d.sT*100):0;
+  const cP=d.cT>0?(d.cA/d.cT*100):0;
+  const tP=d.tT>0?(d.tA/d.tT*100):0;
+  const pct=v=>v>0?Math.round(v)+'%':'N/A';
+  const ae=v=>'AED '+f(v);
+  const lines=[];
+  lines.push('*'+slk(d.date)+'*');
+  lines.push('');
+  const freshSum=document.getElementById('dSum').value.trim();
+  if(freshSum)lines.push(freshSum);
+  lines.push('');
+  lines.push('*Sales Summary*');
+  lines.push('â¢ Retail: '+ae(d.rA)+(d.rT>0?' ('+pct(rP)+' of target)':''));
+  lines.push('â¢ Service: '+ae(d.sA)+(d.sT>0?' ('+pct(sP)+' of target)':''));
+  lines.push('â¢ Coffee: '+ae(d.cA)+(d.cT>0?' ('+pct(cP)+' of target)':''));
+  lines.push('â¢ *Store Total: '+ae(d.tA)+(d.tT>0?' ('+pct(tP)+' of target)':'')+'*');
+  if(d.ffTY>0){lines.push('â¢ Footfall: '+f(d.ffTY)+' | Conversion: '+(d.cvTY||'â'));}
+  if(d.del>0||d.car>0||d.kee>0){
+    const dlv=[];
+    if(d.car>0)dlv.push('Careem '+ae(d.car));
+    if(d.del>0)dlv.push('Deliveroo '+ae(d.del));
+    if(d.kee>0)dlv.push('Keeta '+ae(d.kee));
+    lines.push('â¢ Delivery: '+dlv.join(' | '));
+  }
+  const freshKI=document.getElementById('dKI').value.trim();
+  if(freshKI){
+    lines.push('');
+    lines.push('*Key Points*');
+    freshKI.split('\n').filter(Boolean).forEach(l=>lines.push('â¢ '+l));
+  }
+  const report=lines.join('\n');
+  document.getElementById('repOut').textContent=report;
+  document.getElementById('repCard').style.display='block';
+  document.getElementById('repCard').scrollIntoView({behavior:'smooth'});
+}
+
+function cpRep(){
+  const text=document.getElementById('repOut').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>{
+      const btn=document.getElementById('cpBtn');
+      btn.textContent='Copied!';
+      setTimeout(()=>{btn.textContent='Copy to Clipboard';},2000);
+    }).catch(()=>fallbackCopy(text));
+  }else{fallbackCopy(text);}
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');
+    const btn=document.getElementById('cpBtn');
+    btn.textContent='Copied!';
+    setTimeout(()=>{btn.textContent='Copy to Clipboard';},2000);
+  }catch(e){alert('Select the text above and copy manually.');}
+  document.body.removeChild(ta);
+}
+</script>
+</body>
+</html>
