@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically.</p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v3</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -232,9 +232,9 @@ async function loadFromSheet(){
     const n=s=>{if(!s)return 0;const v=parseFloat(String(s).replace(/,/g,'').replace(/%/g,''));return isNaN(v)?0:v;};
     // Positional column mapping (sheet has no header row)
     const rA=n(dr[1]),rTx=n(dr[2]),rT=n(dr[3]);
-    const sA=n(dr[5]),sTx=n(dr[6]),sT=0;
-    const cA=n(dr[8]),cTx=n(dr[9]),cT=n(dr[10]);
-    const iCar=n(dr[12]),iDel=n(dr[15]),iKee=n(dr[17]);
+    const sA=n(dr[8]),sTx=n(dr[9]),sT=n(dr[10]);
+    const cA=n(dr[15]),cTx=n(dr[16]),cT=n(dr[20]);
+    const iCar=n(dr[17]),iDel=n(dr[18]),iKee=n(dr[19]);
     const ffTY=n(dr[32]);
     const cvRaw=dr[34]||'';
 
