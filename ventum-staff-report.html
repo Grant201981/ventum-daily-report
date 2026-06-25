@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Ventum House â Daily Report</title>
+<title>Ventum House – Daily Report</title>
 <style>
 :root{color-scheme:light}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -47,21 +47,21 @@ textarea:focus{outline:none;border-color:#6366f1}
 </style>
 </head>
 <body>
-<h1>ð´ Ventum House â Daily Report</h1>
+<h1>🚴 Ventum House – Daily Report</h1>
 <p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v4</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
-  <h2>ð Date &amp; Data Source</h2>
+  <h2>📅 Date &amp; Data Source</h2>
   <div class="field">
     <label>Report Date</label>
     <input type="date" id="dailyDate" onchange="onDateChange()">
   </div>
-  <button class="btn bsheet" onclick="loadFromSheet()">ð Load from Google Sheet</button>
+  <button class="btn bsheet" onclick="loadFromSheet()">📊 Load from Google Sheet</button>
   <div id="sstatus" class="sstatus"></div>
-  <span class="tgt-toggle" onclick="toggleTgt()">âï¸ Set monthly targets manually <span id="tgtSaved" class="saved-badge"></span></span>
+  <span class="tgt-toggle" onclick="toggleTgt()">⚙️ Set monthly targets manually <span id="tgtSaved" class="saved-badge"></span></span>
   <div id="tgtArea">
-    <p class="hint" style="margin-bottom:8px">Manual override â targets are loaded automatically from the sheet.</p>
+    <p class="hint" style="margin-bottom:8px">Manual override — targets are loaded automatically from the sheet.</p>
     <div class="row2">
       <div class="field"><label>Retail Target (AED/day)</label><input type="number" id="tRet" placeholder="e.g. 9089" min="0"></div>
       <div class="field"><label>Service Target (AED/day)</label><input type="number" id="tSer" placeholder="e.g. 937" min="0"></div>
@@ -76,7 +76,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 
 <!-- DAILY FIGURES -->
 <div class="card">
-  <h2>ð¼ Retail</h2>
+  <h2>💼 Retail</h2>
   <div class="row2">
     <div class="field"><label>Sales (AED)</label><input type="number" id="rA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
     <div class="field"><label>Transactions</label><input type="number" id="rTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
@@ -85,7 +85,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </div>
 
 <div class="card">
-  <h2>ð§ Service</h2>
+  <h2>🔧 Service</h2>
   <div class="row2">
     <div class="field"><label>Sales (AED)</label><input type="number" id="sA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
     <div class="field"><label>Jobs</label><input type="number" id="sTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
@@ -94,7 +94,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </div>
 
 <div class="card">
-  <h2>â Coffee</h2>
+  <h2>☕ Coffee</h2>
   <div class="row2">
     <div class="field"><label>Sales (AED)</label><input type="number" id="cA" placeholder="0" min="0" inputmode="decimal" oninput="calcTotals()"></div>
     <div class="field"><label>Transactions</label><input type="number" id="cTx" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
@@ -107,7 +107,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </div>
 
 <div class="card">
-  <h2>ð¥ Footfall</h2>
+  <h2>👥 Footfall</h2>
   <div class="row2">
     <div class="field"><label>Visitors today</label><input type="number" id="ffTY" placeholder="0" min="0" inputmode="numeric" oninput="calcTotals()"></div>
     <div class="field"><label>Conversion %</label><input type="text" id="cvTY" placeholder="auto" oninput="calcTotals()"><p class="hint">Leave blank to auto-calculate</p></div>
@@ -116,7 +116,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 
 <!-- TOTALS PREVIEW -->
 <div class="card" id="totCard" style="display:none">
-  <h2>ð Today's Figures</h2>
+  <h2>📊 Today's Figures</h2>
   <div id="dR" class="sr"></div>
   <div id="dS" class="sr"></div>
   <div id="dC" class="sr"></div>
@@ -126,12 +126,12 @@ textarea:focus{outline:none;border-color:#6366f1}
 
 <!-- NARRATIVE -->
 <div class="card">
-  <h2>âï¸ Report Commentary</h2>
-  <button class="btn bp" onclick="writeAll()">â¨ Write Narratives</button>
+  <h2>✏️ Report Commentary</h2>
+  <button class="btn bp" onclick="writeAll()">✨ Write Narratives</button>
   <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Opening Summary</label>
   <textarea id="dSum" style="min-height:80px" placeholder="Click Write Narratives above"></textarea>
   <hr class="div">
-  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Key Points <span style="font-weight:400;color:#aaa">â one per line</span></label>
+  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
   <textarea id="dKI" style="min-height:110px" placeholder="Click Write Narratives above"></textarea>
   <hr class="div">
   <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
@@ -139,7 +139,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 
 <!-- OUTPUT -->
 <div class="card" id="repCard" style="display:none">
-  <h2>ð Slack Report</h2>
+  <h2>📋 Slack Report</h2>
   <div class="rbox" id="repOut"></div>
   <button class="btn bg" id="cpBtn" onclick="cpRep()">Copy to Clipboard</button>
 </div>
@@ -157,31 +157,31 @@ const SHEET_ID='1MTmRA75JLJAzrBRoZN3b9FSjSNQjU0-RpcaE_uZJ4Rc';
   loadFromSheet();
 })();
 
-// ââ helpers âââââââââââââââââââââââââââââââââââââââââââââââ
+// ── helpers ───────────────────────────────────────────────
 function p(s){if(!s&&s!==0)return 0;const n=parseFloat(String(s).replace(/,/g,'').replace(/%/g,''));return isNaN(n)?0:n;}
 function f(n){return Math.round(n).toLocaleString();}
 function st(lbl,val,cls){return'<div class="st"><label>'+lbl+'</label><div class="v '+cls+'">'+val+'</div></div>';}
 function slk(s){const[y,m,d]=s.split('-').map(Number);const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];return days[new Date(y,m-1,d).getDay()]+', '+MF[m-1]+' '+d+', '+y;}
 function sf(s){const[y,m,d]=s.split('-').map(Number);return d+'-'+MS[m-1]+'-'+String(y).slice(-2);}
 
-// Convert "2026-06-20" â "20-Jun-26" (sheet date format)
+// Convert "2026-06-20" → "20-Jun-26" (sheet date format)
 function toSheetDate(dv){
   const[y,m,d]=dv.split('-').map(Number);
   return d+'-'+MS[m-1]+'-'+String(y).slice(-2);
 }
 
-// ââ sheet status bar ââââââââââââââââââââââââââââââââââââââ
+// ── sheet status bar ──────────────────────────────────────
 function setStatus(type,msg){
   const el=document.getElementById('sstatus');
   el.className='sstatus';
-  const icons={load:'â³',ok:'â',warn:'â ï¸',err:'â'};
+  const icons={load:'⏳',ok:'✓',warn:'⚠️',err:'✗'};
   const cls={load:'ss-load',ok:'ss-ok',warn:'ss-warn',err:'ss-err'};
   el.className+=' '+(cls[type]||'ss-err');
   el.textContent=(icons[type]||'')+(msg?' '+msg:'');
   el.style.display='block';
 }
 
-// ââ CSV parser (handles quoted fields) âââââââââââââââââââ
+// ── CSV parser (handles quoted fields) ───────────────────
 function parseCSV(text){
   const rows=[];
   const lines=text.split(/\r?\n/);
@@ -200,7 +200,7 @@ function parseCSV(text){
   return rows;
 }
 
-// ââ load data from Google Sheet âââââââââââââââââââââââââââ
+// ── load data from Google Sheet ───────────────────────────
 let sheetLoaded=false;
 window._sheetLY=null;window._sheetMTD=null;
 
@@ -212,7 +212,7 @@ async function loadFromSheet(){
   const dateStr=toSheetDate(dv);
   const url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheetName);
 
-  setStatus('load','Connecting to sheetâ¦');
+  setStatus('load','Connecting to sheet…');
   try{
     const resp=await fetch(url);
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -231,7 +231,7 @@ async function loadFromSheet(){
     if(!dr)throw new Error('Date '+dateStr+' not found in '+sheetName+' tab');
 
     const n=s=>{if(!s)return 0;const v=parseFloat(String(s).replace(/,/g,'').replace(/%/g,''));return isNaN(v)?0:v;};
-    // Positional column mapping â gviz/tq strips the "Date" header row; positions are 0-indexed:
+    // Positional column mapping — gviz/tq strips the "Date" header row; positions are 0-indexed:
     // 0=Date, 1=Retail Sales, 2=Retail Txns, 3=Retail Target, 4=Retail%,
     // 5=Retail LY Sales, 6=Retail LY Txns, 7=Retail% vs LY,
     // 8=Service Sales, 9=Service Txns, 10=Service Target, 11=Service%,
@@ -268,7 +268,7 @@ async function loadFromSheet(){
         document.getElementById('tSer').value=sT||'';
         document.getElementById('tCof').value=cT||'';
         document.getElementById('tMonth').value=sheetName;
-        document.getElementById('tgtSaved').textContent='â saved';
+        document.getElementById('tgtSaved').textContent='✓ saved';
       }catch(e){}
     }
 
@@ -276,13 +276,13 @@ async function loadFromSheet(){
     sheetLoaded=true;
     const hasData=rA>0||sA>0||cA>0;
     if(hasData){setStatus('ok','Loaded '+dateStr+' from sheet');}
-    else{setStatus('warn','No sales data for '+dateStr+' yet â fill in the figures below');}
+    else{setStatus('warn','No sales data for '+dateStr+' yet — fill in the figures below');}
 
   }catch(e){
     console.error(e);
     sheetLoaded=false;
     if(e.message==='auth_required'||String(e.message).includes('auth')){
-      setStatus('err','Sheet is private. In Google Sheets â Share â change to "Anyone with the link can view".');
+      setStatus('err','Sheet is private. In Google Sheets → Share → change to "Anyone with the link can view".');
     }else if(String(e.message).includes('not found')){
       setStatus('err',e.message);
     }else{
@@ -297,7 +297,7 @@ function onDateChange(){
   if(sheetLoaded){loadFromSheet();}
 }
 
-// ââ targets (localStorage fallback) ââââââââââââââââââââââ
+// ── targets (localStorage fallback) ──────────────────────
 function toggleTgt(){
   const a=document.getElementById('tgtArea');
   a.style.display=a.style.display==='none'?'block':'none';
@@ -318,7 +318,7 @@ function loadTargets(){
       document.getElementById('tSer').value=t.sT||'';
       document.getElementById('tCof').value=t.cT||'';
       document.getElementById('tMonth').value=t.month||'';
-      document.getElementById('tgtSaved').textContent='â saved';
+      document.getElementById('tgtSaved').textContent='✓ saved';
     }else{
       document.getElementById('tgtSaved').textContent='';
     }
@@ -335,10 +335,10 @@ function saveTargets(){
       cT:p(document.getElementById('tCof').value),
       month:document.getElementById('tMonth').value.trim()
     }));
-    document.getElementById('tgtSaved').textContent='â saved';
+    document.getElementById('tgtSaved').textContent='✓ saved';
     document.getElementById('tgtArea').style.display='none';
     calcTotals();
-  }catch(e){alert('Could not save â check browser settings.');}
+  }catch(e){alert('Could not save — check browser settings.');}
 }
 
 function getTargets(){
@@ -346,7 +346,7 @@ function getTargets(){
   try{return JSON.parse(localStorage.getItem(k)||'null')||{rT:0,sT:0,cT:0,month:''};}catch(e){return{rT:0,sT:0,cT:0,month:''};}
 }
 
-// ââ form data âââââââââââââââââââââââââââââââââââââââââââââ
+// ── form data ─────────────────────────────────────────────
 function getData(){
   const tgt=getTargets();
   const dv=document.getElementById('dailyDate').value;
@@ -374,7 +374,7 @@ function getData(){
   };
 }
 
-// ââ totals preview ââââââââââââââââââââââââââââââââââââââââ
+// ── totals preview ────────────────────────────────────────
 function calcTotals(){
   const d=getData();
   if(!d.date)return;
@@ -385,14 +385,14 @@ function calcTotals(){
   const sP=d.sT>0?(d.sA/d.sT*100).toFixed(1)+'%':'N/A';
   const cP=d.cT>0?(d.cA/d.cT*100).toFixed(1)+'%':'N/A';
   const tP=d.tT>0?(d.tA/d.tT*100).toFixed(1)+'%':'N/A';
-  document.getElementById('dR').innerHTML='<div class="dl">Retail</div>'+st('Sales','AED '+f(d.rA),'neu')+st('Target',d.rT>0?'AED '+f(d.rT):'â','neu')+st('Achievement',rP,d.rA>=d.rT&&d.rT>0?'good':'bad')+st('Tx',d.rTx,'neu')+st('ATV',d.rTx>0?'AED '+f(d.rA/d.rTx):'â','neu');
-  document.getElementById('dS').innerHTML='<div class="dl">Service</div>'+st('Sales','AED '+f(d.sA),'neu')+st('Target',d.sT>0?'AED '+f(d.sT):'â','neu')+st('Achievement',sP,d.sA>=d.sT&&d.sT>0?'good':'bad')+st('Tx',d.sTx,'neu')+st('ATV',d.sTx>0?'AED '+f(d.sA/d.sTx):'â','neu');
-  document.getElementById('dC').innerHTML='<div class="dl">Coffee</div>'+st('Sales','AED '+f(d.cA),'neu')+st('Target',d.cT>0?'AED '+f(d.cT):'â','neu')+st('Achievement',cP,d.cA>=d.cT&&d.cT>0?'good':'bad')+st('Tx',d.cTx,'neu')+st('ATV',d.cTx>0?'AED '+f(d.cA/d.cTx):'â','neu');
-  document.getElementById('dT').innerHTML='<div class="dl">Store Total</div>'+st('Sales','AED '+f(d.tA),'neu')+st('Target',d.tT>0?'AED '+f(d.tT):'â','neu')+st('Achievement',tP,d.tA>=d.tT&&d.tT>0?'good':'bad')+st('Tx',d.tTx,'neu')+st('ATV',d.tTx>0?'AED '+f(d.tA/d.tTx):'â','neu');
-  document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'â','neu');
+  document.getElementById('dR').innerHTML='<div class="dl">Retail</div>'+st('Sales','AED '+f(d.rA),'neu')+st('Target',d.rT>0?'AED '+f(d.rT):'—','neu')+st('Achievement',rP,d.rA>=d.rT&&d.rT>0?'good':'bad')+st('Tx',d.rTx,'neu')+st('ATV',d.rTx>0?'AED '+f(d.rA/d.rTx):'—','neu');
+  document.getElementById('dS').innerHTML='<div class="dl">Service</div>'+st('Sales','AED '+f(d.sA),'neu')+st('Target',d.sT>0?'AED '+f(d.sT):'—','neu')+st('Achievement',sP,d.sA>=d.sT&&d.sT>0?'good':'bad')+st('Tx',d.sTx,'neu')+st('ATV',d.sTx>0?'AED '+f(d.sA/d.sTx):'—','neu');
+  document.getElementById('dC').innerHTML='<div class="dl">Coffee</div>'+st('Sales','AED '+f(d.cA),'neu')+st('Target',d.cT>0?'AED '+f(d.cT):'—','neu')+st('Achievement',cP,d.cA>=d.cT&&d.cT>0?'good':'bad')+st('Tx',d.cTx,'neu')+st('ATV',d.cTx>0?'AED '+f(d.cA/d.cTx):'—','neu');
+  document.getElementById('dT').innerHTML='<div class="dl">Store Total</div>'+st('Sales','AED '+f(d.tA),'neu')+st('Target',d.tT>0?'AED '+f(d.tT):'—','neu')+st('Achievement',tP,d.tA>=d.tT&&d.tT>0?'good':'bad')+st('Tx',d.tTx,'neu')+st('ATV',d.tTx>0?'AED '+f(d.tA/d.tTx):'—','neu');
+  document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'—','neu');
 }
 
-// ââ narrative generator âââââââââââââââââââââââââââââââââââ
+// ── narrative generator ───────────────────────────────────
 function writeAll(){
   const d=getData();
   const rB=document.getElementById('rB').value.trim();
@@ -413,20 +413,20 @@ function writeAll(){
 
   let op='';
   if(!d.rT){
-    op='Figures entered for '+slk(d.date)+'. Targets not set â tap Set monthly targets above to enable performance analysis.';
+    op='Figures entered for '+slk(d.date)+'. Targets not set — tap Set monthly targets above to enable performance analysis.';
   }else if(tP>=150){
-    op='An exceptional trading day'+(rB?' â '+rB.toLowerCase()+' among the highlights,':' â strong performance across the floor,')+' finishing AED '+f(tGap)+' ahead of target at '+Math.round(tP)+'% achievement. '+(allAbove?'All three departments delivered above their individual targets.':'A standout result.');
+    op='An exceptional trading day'+(rB?' — '+rB.toLowerCase()+' among the highlights,':' — strong performance across the floor,')+' finishing AED '+f(tGap)+' ahead of target at '+Math.round(tP)+'% achievement. '+(allAbove?'All three departments delivered above their individual targets.':'A standout result.');
   }else if(tP>=100&&allAbove){
-    op='A strong day all round â all three departments above target with total store finishing at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' ahead.'+(rB?' Retail featured '+rB.toLowerCase()+'.':'');
+    op='A strong day all round — all three departments above target with total store finishing at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' ahead.'+(rB?' Retail featured '+rB.toLowerCase()+'.':'');
   }else if(tP>=100&&!allAbove){
     const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
     const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
     const abvStr=abv.join(' and ');
-    op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' carried the day despite '+blw.join(' and ')+' finishing below target â total store landed AED '+f(tGap)+' ahead at '+Math.round(tP)+'% achievement.'+(rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
+    op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' carried the day despite '+blw.join(' and ')+' finishing below target — total store landed AED '+f(tGap)+' ahead at '+Math.round(tP)+'% achievement.'+(rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
   }else if(noneAbove&&tP<50){
-    op='A very quiet day across all three departments â total store finished at '+Math.round(tP)+'% of target, AED '+f(tGap)+' short.'+(rB?' Retail was limited to '+rB.toLowerCase()+', with no premium transactions to move the needle.':' No premium retail transactions today.')+' '+(sBc?'Service completed '+sBc.toLowerCase()+'.':'Service ran below required levels.')+' The priority for tomorrow is anchoring the day with a strong retail sale.';
+    op='A very quiet day across all three departments — total store finished at '+Math.round(tP)+'% of target, AED '+f(tGap)+' short.'+(rB?' Retail was limited to '+rB.toLowerCase()+', with no premium transactions to move the needle.':' No premium retail transactions today.')+' '+(sBc?'Service completed '+sBc.toLowerCase()+'.':'Service ran below required levels.')+' The priority for tomorrow is anchoring the day with a strong retail sale.';
   }else if(noneAbove){
-    op='All three departments below target today â total store finished at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' short.'+(rB?' Retail had '+rB.toLowerCase()+' but lacked the high-value transactions needed to drive total performance.':' Retail lacked the premium transactions needed to move the store number.')+' Service and coffee both finished below daily pacing.';
+    op='All three departments below target today — total store finished at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' short.'+(rB?' Retail had '+rB.toLowerCase()+' but lacked the high-value transactions needed to drive total performance.':' Retail lacked the premium transactions needed to move the store number.')+' Service and coffee both finished below daily pacing.';
   }else{
     const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
     const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
@@ -443,16 +443,16 @@ function writeAll(){
   }
 
   const kp=[];
-  if(rP>=200)kp.push(rB?rB.charAt(0).toUpperCase()+rB.slice(1)+' â exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today â '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
-  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' â '+rB.toLowerCase():'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV.');
-  else if(d.rA>0)kp.push('Retail below target at '+Math.round(rP)+'% â '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+', AED '+f(Math.abs(Math.round(d.rA-d.rT)))+' short.'+(rB?' '+rB.charAt(0).toUpperCase()+rB.slice(1)+'.':''));
+  if(rP>=200)kp.push(rB?rB.charAt(0).toUpperCase()+rB.slice(1)+' — exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
+  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' — '+rB.toLowerCase():'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV.');
+  else if(d.rA>0)kp.push('Retail below target at '+Math.round(rP)+'% — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+', AED '+f(Math.abs(Math.round(d.rA-d.rT)))+' short.'+(rB?' '+rB.charAt(0).toUpperCase()+rB.slice(1)+'.':''));
   if(d.sT>0){
-    if(sAb)kp.push('Service above target at '+Math.round(sP)+'% â '+d.sTx+' job'+(d.sTx!==1?'s':'')+', AED '+f(sATV)+' ATV.');
+    if(sAb)kp.push('Service above target at '+Math.round(sP)+'% — '+d.sTx+' job'+(d.sTx!==1?'s':'')+', AED '+f(sATV)+' ATV.');
     else if(d.sA>0)kp.push('Service '+d.sTx+' job'+(d.sTx!==1?'s':'')+' for AED '+f(d.sA)+' ('+Math.round(sP)+'% of target).');
     else kp.push('No service revenue today.');
   }else if(d.sA>0){kp.push('Service: '+d.sTx+' job'+(d.sTx!==1?'s':'')+' for AED '+f(d.sA)+'.');}
   if(d.cT>0){
-    if(cAb)kp.push('Coffee above target at '+Math.round(cP)+'% â '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+', AED '+f(cATV)+' ATV.');
+    if(cAb)kp.push('Coffee above target at '+Math.round(cP)+'% — '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+', AED '+f(cATV)+' ATV.');
     else if(d.cA>0)kp.push('Coffee '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+' for AED '+f(d.cA)+' ('+Math.round(cP)+'% of target).');
   }else if(d.cA>0){kp.push('Coffee: '+d.cTx+' transaction'+(d.cTx!==1?'s':'')+' for AED '+f(d.cA)+'.');}
   if(d.del>0||d.car>0||d.kee>0){
@@ -462,7 +462,7 @@ function writeAll(){
     if(d.kee>0)dlv.push('Keeta AED '+f(d.kee));
     kp.push('Delivery: '+dlv.join(', ')+'.');
   }
-  if(conv>0)kp.push('Footfall '+f(d.ffTY)+' visitors â conversion '+d.cvTY+'.');
+  if(conv>0)kp.push('Footfall '+f(d.ffTY)+' visitors — conversion '+d.cvTY+'.');
 
   document.getElementById('dSum').value=op;
   document.getElementById('dKI').value=kp.join('\n');
@@ -480,13 +480,14 @@ function genReport(){
   const tP=d.tT>0?(d.tA/d.tT*100):0;
   const pct=v=>v.toFixed(1)+'%';
   const ae=v=>'AED '+f(v);
-  const B='â¢';
-  const DIV='â'.repeat(24);
+  const B='•';
+  const DIV='─'.repeat(24);
   const ly=window._sheetLY||{};
   const yoy=(ty,lyv)=>{if(!lyv)return null;const p=((ty-lyv)/lyv*100);return(p>=0?'+':'')+p.toFixed(1)+'% (vs '+f(lyv)+')';};
   const lines=[];
+  // Header
   lines.push(DIV);
-  lines.push('Vines.push('Ventum House â Daily Report');
+  lines.push('Ventum House – Daily Report');
   lines.push(slk(d.date));
   if(sum)lines.push(sum);
   lines.push(DIV);
@@ -497,7 +498,7 @@ function genReport(){
   lines.push('Breakdown:  '+(rB||'(add retail breakdown)'));
   const rYoY=yoy(d.rA,ly.rLY);if(rYoY)lines.push(B+' YoY: '+rYoY);
   lines.push(B+' Transactions: '+d.rTx);
-  lines.push(B+' ATV: '+(d.rTx>0?ae(Math.round(d.rA/d.rTx)):'AED â'));
+  lines.push(B+' ATV: '+(d.rTx>0?ae(Math.round(d.rA/d.rTx)):'AED —'));
   lines.push(DIV);
   // Service
   lines.push('Service');
@@ -505,17 +506,17 @@ function genReport(){
   lines.push('Breakdown:  '+(sB||'(add service breakdown)'));
   const sYoY=yoy(d.sA,ly.sLY);if(sYoY)lines.push(B+' YoY: '+sYoY);
   lines.push(B+' Transactions: '+d.sTx);
-  lines.push(B+' ATV: '+(d.sTx>0?ae(Math.round(d.sA/d.sTx)):'AED â'));
+  lines.push(B+' ATV: '+(d.sTx>0?ae(Math.round(d.sA/d.sTx)):'AED —'));
   lines.push(DIV);
   // Coffee
   const cDel=d.del+d.car+d.kee;
   const cIn=Math.max(0,Math.round(d.cA-cDel));
   lines.push('Coffee');
   if(d.cT>0){lines.push(B+' Target: '+ae(d.cT));lines.push(B+' Sales: '+ae(d.cA));lines.push(B+' Achievement: '+pct(cP));lines.push(B+(d.cA>=d.cT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.cA-d.cT))));}else{lines.push(B+' Sales: '+ae(d.cA));}
-  if(d.cA>0){const ip=Math.round(cIn/d.cA*100);const dp=Math.round(cDel/d.cA*100);lines.push(B+' In-store: '+ae(cIn)+' ('+ip+'%)');lines.push(B+' Delivery: '+ae(cDel)+' ('+dp+'%)');lines.push('  â Deliveroo: '+ae(d.del));lines.push('  â Careem: '+ae(d.car));lines.push('  â Keeta: '+ae(d.kee));}
+  if(d.cA>0){const ip=Math.round(cIn/d.cA*100);const dp=Math.round(cDel/d.cA*100);lines.push(B+' In-store: '+ae(cIn)+' ('+ip+'%)');lines.push(B+' Delivery: '+ae(cDel)+' ('+dp+'%)');lines.push('  – Deliveroo: '+ae(d.del));lines.push('  – Careem: '+ae(d.car));lines.push('  – Keeta: '+ae(d.kee));}
   const cYoY=yoy(d.cA,ly.cLY);if(cYoY)lines.push(B+' YoY: '+cYoY);
   lines.push(B+' Transactions: '+d.cTx);
-  lines.push(B+' ATV: '+(d.cTx>0?ae(Math.round(d.cA/d.cTx)):'AED â'));
+  lines.push(B+' ATV: '+(d.cTx>0?ae(Math.round(d.cA/d.cTx)):'AED —'));
   lines.push(DIV);
   // Store Totals
   lines.push('Store Totals');
@@ -525,14 +526,14 @@ function genReport(){
   lines.push(B+(d.tA>=d.tT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.tA-d.tT))));
   const tYoY=yoy(d.tA,ly.tLY);if(tYoY)lines.push(B+' YoY: '+tYoY);
   lines.push(B+' Total Transactions: '+d.tTx);
-  lines.push(B+' Store ATV: '+(d.tTx>0?ae(Math.round(d.tA/d.tTx)):'AED â'));
+  lines.push(B+' Store ATV: '+(d.tTx>0?ae(Math.round(d.tA/d.tTx)):'AED —'));
   lines.push(DIV);
   // Footfall
   if(d.ffTY>0){
     lines.push('Footfall & Conversion');
     lines.push(B+' Footfall TY: '+f(d.ffTY));
     if(ly.ffLY){lines.push(B+' Footfall LY: '+f(ly.ffLY));lines.push(B+' YoY: '+(((d.ffTY-ly.ffLY)/ly.ffLY*100)>=0?'+':'')+((d.ffTY-ly.ffLY)/ly.ffLY*100).toFixed(1)+'%');}
-    lines.push(B+' Conversion TY: '+(d.cvTY||'â'));
+    lines.push(B+' Conversion TY: '+(d.cvTY||'—'));
     if(ly.cvLY&&!ly.cvLY.includes('#'))lines.push(B+' Conversion LY: '+ly.cvLY);
     lines.push(DIV);
   }
@@ -542,7 +543,7 @@ function genReport(){
   // MTD Section
   const mtd=window._sheetMTD;
   if(mtd&&mtd.days>0){
-    lines.push(d.month+' â Month to Date');
+    lines.push(d.month+' — Month to Date');
     lines.push(B+' Days Traded: '+mtd.days);
     const mtdSec=(label,a,t,lyv)=>{
       lines.push(label);
