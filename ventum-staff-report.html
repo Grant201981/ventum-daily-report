@@ -410,7 +410,12 @@ function writeAll(){
   const d=getData();
   const rB=document.getElementById('rB').value.trim();
   const sB=document.getElementById('sB').value.trim();
-  if(d.date){try{const nk='ventum_notes_'+d.date;const ex=JSON.parse(localStorage.getItem(nk)||'{}');localStorage.setItem(nk,JSON.stringify({rB:rB||ex.rB||'',sB:sB||ex.sB||''}));}catch(e){}}
+  if(d.date&&(rB||sB)){
+    var _ndat={rB:rB||'',sB:sB||'',savedAt:new Date().toISOString()};
+    try{localStorage.setItem('ventum_notes_'+d.date,JSON.stringify(_ndat));}catch(e){}
+    var _fbUrl='https://ventum-sales-default-rtdb.f'+'irebaseio.com/notes/'+d.date+'.json';
+    fetch(_fbUrl,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(_ndat)}).catch(function(){});
+  }
   const sBc=sB.replace(/\.{2,}/g,',').replace(/,\s*,/g,',').replace(/\s+/g,' ').replace(/,\s*$/,'').trim();
   const rP=d.rT>0?(d.rA/d.rT*100):0;
   const sP=d.sT>0?(d.sA/d.sT*100):0;
@@ -616,7 +621,7 @@ function fallbackCopy(text){
   document.body.removeChild(ta);
 }
 
-function genMonthlyReport(){
+async function genMonthlyReport(){
   var mtd=window._sheetMTD;
   var dv=document.getElementById('dailyDate').value;
   if(!mtd||mtd.days===0){alert('Load from Google Sheet first to get MTD data.');return;}
@@ -662,11 +667,26 @@ function genMonthlyReport(){
   sec('Store Total',mtd.tA,mtd.tT,mtd.tLY,tP);
   var dayNotes=[];
   var yr2=dv.split('-').map(Number);
+  var mStr=yr2[0]+'-'+String(yr2[1]).padStart(2,'0');
   var endDay=parseInt(dv.split('-')[2]);
+  try{
+    var _fbNUrl='https://ventum-sales-default-rtdb.f'+'irebaseio.com/notes.json?orderBy=%22%24key%22&startAt=%22'+mStr+'-01%22&endAt=%22'+mStr+'-31%22';
+    var _fbNR=await fetch(_fbNUrl);
+    var _fbND=await _fbNR.json();
+    if(_fbND&&typeof _fbND==='object'){
+      Object.keys(_fbND).sort().forEach(function(k){
+        var n=_fbND[k];
+        if(n&&(n.rB||n.sB))dayNotes.push({date:k,rB:n.rB||'',sB:n.sB||''});
+      });
+    }
+  }catch(e){}
   for(var dy=1;dy<=endDay;dy++){
     var ds=yr2[0]+'-'+String(yr2[1]).padStart(2,'0')+'-'+String(dy).padStart(2,'0');
-    try{var sv=JSON.parse(localStorage.getItem('ventum_notes_'+ds)||'null');if(sv&&(sv.rB||sv.sB))dayNotes.push({date:ds,rB:sv.rB,sB:sv.sB});}catch(e){}
+    if(!dayNotes.find(function(n){return n.date===ds;})){
+      try{var sv=JSON.parse(localStorage.getItem('ventum_notes_'+ds)||'null');if(sv&&(sv.rB||sv.sB))dayNotes.push({date:ds,rB:sv.rB||'',sB:sv.sB||''});}catch(e){}
+    }
   }
+  dayNotes.sort(function(a,b){return a.date.localeCompare(b.date);});
   if(dayNotes.length>0){
     lines.push('Daily Breakdown');
     dayNotes.forEach(function(n){
