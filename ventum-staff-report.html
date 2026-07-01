@@ -144,6 +144,19 @@ textarea:focus{outline:none;border-color:#6366f1}
   <button class="btn bg" id="cpBtn" onclick="cpRep()">Copy to Clipboard</button>
 </div>
 
+<!-- MONTHLY SLACK REPORT -->
+<div class="card">
+  <h2>&#x1F4C5; Monthly Report</h2>
+  <p class="hint" style="margin-bottom:10px">Load from Google Sheet above, then generate a clean MTD summary for Slack.</p>
+  <button class="btn bg" onclick="genMonthlyReport()">&#x1F4CB; Generate Monthly Slack Report</button>
+</div>
+<div class="card" id="mRepCard" style="display:none">
+  <h2>&#x1F4CB; Monthly Slack Report</h2>
+  <div class="rbox" id="mRepOut"></div>
+  <button class="btn bg" id="cpMBtn" onclick="cpMRep()">Copy to Clipboard</button>
+</div>
+
+
 <script>
 const MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -598,6 +611,77 @@ function fallbackCopy(text){
     const btn=document.getElementById('cpBtn');
     btn.textContent='Copied!';
     setTimeout(()=>{btn.textContent='Copy to Clipboard';},2000);
+  }catch(e){alert('Select the text above and copy manually.');}
+  document.body.removeChild(ta);
+}
+
+function genMonthlyReport(){
+  var mtd=window._sheetMTD;
+  var dv=document.getElementById('dailyDate').value;
+  if(!mtd||mtd.days===0){alert('Load from Google Sheet first to get MTD data.');return;}
+  var yr=dv.split('-').map(Number);
+  var monthName=MF[yr[1]-1];
+  var ae=function(v){return'AED '+f(v);};
+  var pct=function(v){return v.toFixed(1)+'%';};
+  var B='•';
+  var DIV='─'.repeat(24);
+  var lines=[];
+  var tP=mtd.tT>0?(mtd.tA/mtd.tT*100):0;
+  var rP=mtd.rT>0?(mtd.rA/mtd.rT*100):0;
+  var sP=mtd.sT>0?(mtd.sA/mtd.sT*100):0;
+  var cP=mtd.cT>0?(mtd.cA/mtd.cT*100):0;
+  lines.push(DIV);
+  lines.push('Ventum House – '+monthName+' MTD Report');
+  lines.push(slk(dv)+' — '+mtd.days+' Trading Day'+(mtd.days!==1?'s':''));
+  lines.push(DIV);
+  var narr=monthName+' is ';
+  if(tP>=110)narr+='tracking comfortably ahead of MTD target';
+  else if(tP>=100)narr+='tracking ahead of MTD target';
+  else if(tP>=90)narr+='tracking slightly below MTD target';
+  else narr+='tracking below MTD target';
+  narr+=' after '+mtd.days+' trading day'+(mtd.days!==1?'s':'')+'.';
+  narr+=' Total MTD sales: '+ae(mtd.tA)+' vs target of '+ae(mtd.tT)+' ('+pct(tP)+').';
+  lines.push(narr);
+  lines.push(DIV);
+  var sec=function(label,a,t,lyv,p){
+    lines.push(label);
+    lines.push(B+' MTD Sales: '+ae(a));
+    if(t>0){
+      lines.push(B+' MTD Target: '+ae(t));
+      lines.push(B+' Achievement: '+pct(p));
+      if(a>=t)lines.push(B+' Surplus: '+ae(Math.round(a-t)));
+      else lines.push(B+' Shortfall: '+ae(Math.round(t-a)));
+    }
+    if(lyv>0){var y=((a-lyv)/lyv*100);lines.push(B+' vs LY: '+(y>=0?'+':'')+y.toFixed(1)+'% ('+ae(lyv)+')');}
+    lines.push(DIV);
+  };
+  sec('Retail',mtd.rA,mtd.rT,mtd.rLY,rP);
+  sec('Service',mtd.sA,mtd.sT,mtd.sLY,sP);
+  sec('Coffee',mtd.cA,mtd.cT,mtd.cLY,cP);
+  sec('Store Total',mtd.tA,mtd.tT,mtd.tLY,tP);
+  var report=lines.join('\n');
+  document.getElementById('mRepOut').textContent=report;
+  document.getElementById('mRepCard').style.display='block';
+  document.getElementById('mRepCard').scrollIntoView({behavior:'smooth'});
+}
+function cpMRep(){
+  var text=document.getElementById('mRepOut').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){
+      var btn=document.getElementById('cpMBtn');
+      btn.textContent='Copied!';
+      setTimeout(function(){btn.textContent='Copy to Clipboard';},2000);
+    }).catch(function(){fallbackCopyM(text);});
+  }else{fallbackCopyM(text);}
+}
+function fallbackCopyM(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;document.body.appendChild(ta);ta.select();
+  try{
+    document.execCommand('copy');
+    var btn=document.getElementById('cpMBtn');
+    btn.textContent='Copied!';
+    setTimeout(function(){btn.textContent='Copy to Clipboard';},2000);
   }catch(e){alert('Select the text above and copy manually.');}
   document.body.removeChild(ta);
 }
