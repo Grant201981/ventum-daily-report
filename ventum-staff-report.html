@@ -410,6 +410,7 @@ function writeAll(){
   const d=getData();
   const rB=document.getElementById('rB').value.trim();
   const sB=document.getElementById('sB').value.trim();
+  if(d.date){try{const nk='ventum_notes_'+d.date;const ex=JSON.parse(localStorage.getItem(nk)||'{}');localStorage.setItem(nk,JSON.stringify({rB:rB||ex.rB||'',sB:sB||ex.sB||''}));}catch(e){}}
   const sBc=sB.replace(/\.{2,}/g,',').replace(/,\s*,/g,',').replace(/\s+/g,' ').replace(/,\s*$/,'').trim();
   const rP=d.rT>0?(d.rA/d.rT*100):0;
   const sP=d.sT>0?(d.sA/d.sT*100):0;
@@ -659,6 +660,25 @@ function genMonthlyReport(){
   sec('Service',mtd.sA,mtd.sT,mtd.sLY,sP);
   sec('Coffee',mtd.cA,mtd.cT,mtd.cLY,cP);
   sec('Store Total',mtd.tA,mtd.tT,mtd.tLY,tP);
+  var dayNotes=[];
+  var yr2=dv.split('-').map(Number);
+  var endDay=parseInt(dv.split('-')[2]);
+  for(var dy=1;dy<=endDay;dy++){
+    var ds=yr2[0]+'-'+String(yr2[1]).padStart(2,'0')+'-'+String(dy).padStart(2,'0');
+    try{var sv=JSON.parse(localStorage.getItem('ventum_notes_'+ds)||'null');if(sv&&(sv.rB||sv.sB))dayNotes.push({date:ds,rB:sv.rB,sB:sv.sB});}catch(e){}
+  }
+  if(dayNotes.length>0){
+    lines.push('Daily Breakdown');
+    dayNotes.forEach(function(n){
+      var dd=n.date.split('-').map(Number);
+      var dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      var label=dayNames[new Date(dd[0],dd[1]-1,dd[2]).getDay()]+' '+dd[2]+' '+MS[dd[1]-1];
+      lines.push(label);
+      if(n.rB)lines.push('Retail: '+n.rB);
+      if(n.sB)lines.push('Service: '+n.sB);
+    });
+    lines.push(DIV);
+  }
   var report=lines.join('\n');
   document.getElementById('mRepOut').textContent=report;
   document.getElementById('mRepCard').style.display='block';
