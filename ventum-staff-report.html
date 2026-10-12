@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v5</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v6</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -124,28 +124,20 @@ textarea:focus{outline:none;border-color:#6366f1}
   <div id="dF" class="sr"></div>
 </div>
 
-<!-- NARRATIVE -->
+<!-- NARRATIVE (AI) -->
 <div class="card">
   <h2>✏️ Report Commentary</h2>
-  <button class="btn bp" onclick="writeAll()">✨ Write Narratives</button>
-  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Opening Summary</label>
-  <textarea id="dSum" style="min-height:80px" placeholder="Click Write Narratives above"></textarea>
-  <hr class="div">
-  <label style="font-size:12px;font-weight:600;color:#555;margin-bottom:3px;display:block">Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
-  <textarea id="dKI" style="min-height:110px" placeholder="Click Write Narratives above"></textarea>
-  <hr class="div">
-  <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
-</div>
-
-<!-- MANAGER'S COMMENTARY (AI) -->
-<div class="card">
-  <h2>🗣️ Manager's Commentary</h2>
   <label>Your notes <span style="font-weight:400;color:#aaa">— rough is fine: footfall, why LY was high, weather, events…</span></label>
-  <textarea id="mgrNotes" style="min-height:80px" placeholder="e.g. footfall down, school hols started. LY high bc of the big Afkar order"></textarea>
-  <button class="btn bp" id="aiBtn" style="margin-top:8px" onclick="polishNotes()">✨ Rewrite with AI</button>
+  <textarea id="mgrNotes" style="min-height:80px" placeholder="e.g. quiet morning, rain. LY high because of the big Afkar order"></textarea>
+  <button class="btn bp" id="aiBtn" style="margin-top:8px" onclick="aiWrite()">✨ Write summary &amp; key points with AI</button>
   <div id="aiStatus" class="sstatus"></div>
-  <label>Commentary for the report <span style="font-weight:400;color:#aaa">— edit freely</span></label>
-  <textarea id="mgrCom" style="min-height:100px" placeholder="The AI version appears here. You can also type your own."></textarea>
+  <label>Summary <span style="font-weight:400;color:#aaa">— edit freely</span></label>
+  <textarea id="dSum" style="min-height:110px" placeholder="AI writes this from the figures, what was sold and your notes"></textarea>
+  <hr class="div">
+  <label>Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
+  <textarea id="dKI" style="min-height:90px" placeholder="AI writes these too"></textarea>
+  <p class="hint" style="margin:6px 0 10px">No AI today? <a href="#" onclick="writeAll();return false" style="color:#6366f1">Use the quick template instead</a></p>
+  <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
 </div>
 
 <!-- OUTPUT -->
@@ -226,7 +218,7 @@ function parseCSV(text){
 
 // ── load data from Google Sheet ───────────────────────────
 let sheetLoaded=false;
-window._sheetLY=null;window._sheetMTD=null;
+window._sheetLY=null;window._sheetMTD=null;window._sheetTgt=null;
 
 async function loadFromSheet(){
   const dv=document.getElementById('dailyDate').value;
@@ -267,25 +259,26 @@ async function loadFromSheet(){
     const cA=n(dr[15]),cTx=n(dr[16]),cT=n(dr[20]);
     const iCar=n(dr[17]),iDel=n(dr[18]),iKee=n(dr[19]);
     const ffTY=n(dr[32]);
+    window._sheetTgt=(rT||sT||cT)?{date:dv,rT,sT,cT,month:sheetName}:null;
     const cvRaw=dr[34]||'';
     // Store LY data and compute MTD
     window._sheetLY={rLY:n(dr[5]),sLY:n(dr[12]),cLY:n(dr[22]),tLY:n(dr[29]),ffLY:n(dr[33]),cvLY:dr[35]||''};
-    {const dateRe=/^\d+-[A-Za-z]+-\d+$/;const dr2=rows.filter(r=>dateRe.test(r[0]));const di=dr2.findIndex(r=>r[0]===dateStr);if(di>=0){const mr=dr2.slice(0,di+1);const sm=c=>mr.reduce((a,r)=>a+n(r[c]),0);window._sheetMTD={days:mr.filter(r=>n(r[1])>0||n(r[8])>0||n(r[15])>0).length,rA:sm(1),rT:sm(3),rLY:sm(5),sA:sm(8),sT:sm(10),sLY:sm(12),cA:sm(15),cT:sm(20),cLY:sm(22),tA:sm(1)+sm(8)+sm(15),tT:sm(3)+sm(10)+sm(20),tLY:sm(5)+sm(12)+sm(22)};}else{window._sheetMTD=null;}}
+    {const dateRe=/^\d+-[A-Za-z]+-\d+$/;const dr2=rows.filter(r=>dateRe.test(r[0]));const di=dr2.findIndex(r=>r[0]===dateStr);if(di>=0){const mr=dr2.slice(0,di+1);const sm=c=>mr.reduce((a,r)=>a+n(r[c]),0);window._sheetMTD={days:mr.filter(r=>n(r[1])>0||n(r[8])>0||n(r[15])>0).length,rA:sm(1),rT:sm(3),rLY:sm(5),sA:sm(8),sT:sm(10),sLY:sm(12),cA:sm(15),cT:sm(20),cLY:sm(22),tA:sm(1)+sm(8)+sm(15),tT:sm(3)+sm(10)+sm(20),tLY:sm(5)+sm(12)+sm(22)};const tot=rows.find(r=>String(r[0]).trim()==='MTD Total');const sa=c=>dr2.reduce((a,r)=>a+n(r[c]),0);Object.assign(window._sheetMTD,tot?{rF:n(tot[3]),sF:n(tot[10]),cF:n(tot[20]),tF:n(tot[27])}:{rF:sa(3),sF:sa(10),cF:sa(20),tF:sa(3)+sa(10)+sa(20)});}else{window._sheetMTD=null;}}
 
     // Fill form fields (only overwrite if value is present)
-    const setF=(id,val)=>{if(val)document.getElementById(id).value=val;};
+    const setF=(id,val)=>{document.getElementById(id).value=val||'';};
     setF('rA',rA||'');setF('rTx',rTx||'');
     setF('sA',sA||'');setF('sTx',sTx||'');
     setF('cA',cA||'');setF('cTx',cTx||'');
     setF('iCar',iCar||'');setF('iDel',iDel||'');setF('iKee',iKee||'');
     setF('ffTY',ffTY||'');
-    if(cvRaw&&!cvRaw.includes('#'))document.getElementById('cvTY').value=cvRaw;
+    document.getElementById('cvTY').value=(cvRaw&&!cvRaw.includes('#'))?cvRaw:'';
 
     // Auto-save targets from sheet if not already saved for this month
     const k=getMonthKey();
     let existing=null;
     try{existing=JSON.parse(localStorage.getItem(k));}catch(e){}
-    if(!existing&&(rT||sT||cT)){
+    if(false){
       try{
         localStorage.setItem(k,JSON.stringify({rT,sT,cT,month:sheetName}));
         document.getElementById('tRet').value=rT||'';
@@ -317,6 +310,7 @@ async function loadFromSheet(){
 
 // Reload sheet when date changes (if sheet was already connected)
 function onDateChange(){
+  window._sheetTgt=null;window._sheetLY=null;window._sheetMTD=null;
   loadTargets();
   if(sheetLoaded){loadFromSheet();}
 }
@@ -366,6 +360,8 @@ function saveTargets(){
 }
 
 function getTargets(){
+  const dv=document.getElementById('dailyDate').value;
+  if(window._sheetTgt&&window._sheetTgt.date===dv)return window._sheetTgt;
   const k=getMonthKey();
   try{return JSON.parse(localStorage.getItem(k)||'null')||{rT:0,sT:0,cT:0,month:''};}catch(e){return{rT:0,sT:0,cT:0,month:''};}
 }
@@ -416,10 +412,9 @@ function calcTotals(){
   document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'—','neu');
 }
 
-// ── manager's commentary (AI) ─────────────────────────────
-// Paste the Google Apps Script web app URL between the quotes once it is deployed.
+// ── AI write-up (summary + key points) ────────────────────
 const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
-const AI_GUIDE="You write the Manager's Commentary section of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Rewrite the manager's rough notes into 2 to 4 clear, professional sentences in British English. Plain text only: no headings, bullet points, emojis or markdown. Use only what is in the notes and the figures. Never invent reasons, events or numbers. Where it helps, refer to figures from the data to support the manager's point. Keep the manager's meaning and keep the tone confident and factual, not salesy. Reply with the commentary only.";
+const AI_GUIDE="You write the narrative parts of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"]}. summary: 3 to 4 sentences covering how the day went against target and last year, what drove it, and the manager's notes (reasons for footfall, why last year was higher or lower, events, weather). key_points: exactly 3 short, specific points that add something the summary does not. British English, plain text, no emojis or markdown. Use only the figures and the notes. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand names properly (POC, ENVE, Lezyne, XLAB, Ventum). If a note contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
 function setAi(type,msg){
   const el=document.getElementById('aiStatus');
   const cls={load:'ss-load',ok:'ss-ok',warn:'ss-warn',err:'ss-err'};
@@ -429,42 +424,57 @@ function setAi(type,msg){
   el.style.display='block';
 }
 function aiFacts(){
-  const d=getData(),ly=window._sheetLY||{};
-  const pc=(a,t)=>t>0?' ('+(a/t*100).toFixed(1)+'% of target AED '+f(t)+')':'';
-  const vly=(a,l)=>l>0?', LY AED '+f(l)+' ('+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%)':'';
+  const d=getData(),ly=window._sheetLY||{},m=window._sheetMTD;
+  const pc=(a,t)=>t>0?' ('+(a/t*100).toFixed(1)+'% of target AED '+f(t)+')':' (no target)';
+  const vly=(a,l)=>l>0?', last year AED '+f(l)+' ('+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%)':'';
+  const rB=document.getElementById('rB').value.trim(),sB=document.getElementById('sB').value.trim();
+  const del=d.del+d.car+d.kee;
   const L=[];
-  if(d.date)L.push('Date: '+slk(d.date));
-  L.push('Retail: AED '+f(d.rA)+' from '+d.rTx+' transactions'+pc(d.rA,d.rT)+vly(d.rA,ly.rLY));
-  L.push('Service: AED '+f(d.sA)+' from '+d.sTx+' jobs'+pc(d.sA,d.sT)+vly(d.sA,ly.sLY));
-  L.push('Coffee: AED '+f(d.cA)+' from '+d.cTx+' transactions'+pc(d.cA,d.cT)+vly(d.cA,ly.cLY));
-  L.push('Store total: AED '+f(d.tA)+pc(d.tA,d.tT)+vly(d.tA,ly.tLY));
-  if(d.ffTY>0)L.push('Footfall: '+f(d.ffTY)+(ly.ffLY>0?' vs '+f(ly.ffLY)+' LY':'')+', conversion '+(d.cvTY||'—')+(ly.cvLY&&!String(ly.cvLY).includes('#')?' vs '+ly.cvLY+' LY':''));
+  if(d.date)L.push('Date: '+dLong(d.date));
+  L.push('Store total: AED '+f(d.tA)+pc(d.tA,d.tT)+vly(d.tA,ly.tLY)+', '+d.tTx+' transactions');
+  L.push('Retail: AED '+f(d.rA)+' from '+d.rTx+' transactions'+pc(d.rA,d.rT)+vly(d.rA,ly.rLY)+(rB?'. Sold: '+rB:''));
+  L.push('Service: AED '+f(d.sA)+' from '+d.sTx+' jobs'+pc(d.sA,d.sT)+vly(d.sA,ly.sLY)+(sB?'. Jobs: '+sB:''));
+  L.push('Coffee: AED '+f(d.cA)+' from '+d.cTx+' transactions'+pc(d.cA,d.cT)+vly(d.cA,ly.cLY)+(del>0?'. Delivery AED '+f(del):''));
+  if(d.ffTY>0)L.push('Footfall: '+f(d.ffTY)+(ly.ffLY>0?' vs '+f(ly.ffLY)+' last year':'')+', conversion '+(d.cvTY||'—')+(ly.cvLY&&!String(ly.cvLY).includes('#')?' vs '+ly.cvLY+' last year':''));
+  if(m&&m.days>0){
+    L.push('Month to date ('+m.days+' trading days): store AED '+f(m.tA)+', '+(m.tT>0?(m.tA/m.tT*100).toFixed(1):'0')+'% of target to date (AED '+f(m.tT)+'), '+(m.tF>0?(m.tA/m.tF*100).toFixed(1):'0')+'% of the full month target (AED '+f(m.tF)+')'+(m.tLY>0?', vs last year '+((m.tA-m.tLY)/m.tLY*100>=0?'+':'')+((m.tA-m.tLY)/m.tLY*100).toFixed(1)+'%':''));
+    L.push('MTD by department vs target to date: retail '+(m.rT>0?(m.rA/m.rT*100).toFixed(1):'0')+'%, service '+(m.sT>0?(m.sA/m.sT*100).toFixed(1):'0')+'%, coffee '+(m.cT>0?(m.cA/m.cT*100).toFixed(1):'0')+'%');
+  }
   return L.join('\n');
 }
-async function copyPromptFallback(notes,why){
-  const prompt=AI_GUIDE+'\n\nFigures:\n'+aiFacts()+'\n\nManager notes:\n'+notes;
-  try{await navigator.clipboard.writeText(prompt);setAi('warn',why+' A ready-made prompt has been copied: paste it into Claude, then paste the answer into the box below.');}
-  catch(e){setAi('err',why+' Type your commentary in the box below instead.');}
+function parseAi(t){
+  t=String(t||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
+  const i=t.indexOf('{'),j=t.lastIndexOf('}');
+  const o=JSON.parse(t.slice(i,j+1));
+  if(!o.summary)throw new Error('No summary in reply');
+  return o;
 }
-async function polishNotes(){
+async function copyPromptFallback(notes,why){
+  const prompt=AI_GUIDE+'\n\nFigures:\n'+aiFacts()+'\n\nManager notes:\n'+(notes||'(none)');
+  try{await navigator.clipboard.writeText(prompt);setAi('warn',why+' A ready-made prompt has been copied: paste it into Claude, then paste the answer into the boxes below.');}
+  catch(e){setAi('err',why+' Use the quick template link below instead.');}
+}
+async function aiWrite(){
+  const d=getData();
+  if(!(d.rA>0||d.sA>0||d.cA>0)){setAi('warn','Load or enter the day\'s figures first.');return;}
   const notes=document.getElementById('mgrNotes').value.trim();
-  if(!notes){setAi('warn','Type a few notes first.');return;}
   if(notes.length>1500){setAi('warn','Keep the notes under 1,500 characters.');return;}
-  if(!AI_URL){await copyPromptFallback(notes,'AI is not connected yet.');return;}
   const btn=document.getElementById('aiBtn');
   btn.disabled=true;btn.style.opacity='.6';
-  setAi('load','Writing commentary… (about 10 seconds)');
+  setAi('load','Writing summary and key points… (about 10–15 seconds)');
   try{
-    const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({notes,facts:aiFacts()})});
+    const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({task:'report',notes:notes||'(no notes today)',facts:aiFacts()})});
     const j=await r.json();
     if(j.error)throw new Error(j.error);
-    if(!j.text)throw new Error('Empty reply');
-    document.getElementById('mgrCom').value=j.text;
-    setAi('ok','Done. Edit it if needed, then Generate Slack Report.');
+    const o=parseAi(j.text);
+    document.getElementById('dSum').value=o.summary.trim();
+    document.getElementById('dKI').value=(o.key_points||[]).map(x=>String(x).trim()).filter(Boolean).join('\n');
+    setAi('ok','Done. Edit if needed, then Generate Slack Report.');
   }catch(e){
     await copyPromptFallback(notes,'AI did not respond ('+e.message+').');
   }finally{btn.disabled=false;btn.style.opacity='';}
 }
+function dLong(s){const[y,m,d]=s.split('-').map(Number);const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];return days[new Date(y,m-1,d).getDay()]+' '+d+' '+MF[m-1]+' '+y;}
 
 // ── narrative generator ───────────────────────────────────
 function writeAll(){
@@ -550,115 +560,46 @@ function writeAll(){
 
 function genReport(){
   if(!document.getElementById('dSum').value.trim()&&!document.getElementById('dKI').value.trim()){writeAll();}
-  const d=getData();
+  const d=getData(),ly=window._sheetLY||{},m=window._sheetMTD;
   const sum=document.getElementById('dSum').value.trim();
   const rB=document.getElementById('rB').value.trim();
   const sB=document.getElementById('sB').value.trim();
-  const rP=d.rT>0?(d.rA/d.rT*100):0;
-  const sP=d.sT>0?(d.sA/d.sT*100):0;
-  const cP=d.cT>0?(d.cA/d.cT*100):0;
-  const tP=d.tT>0?(d.tA/d.tT*100):0;
-  const pct=v=>v.toFixed(1)+'%';
-  const ae=v=>'AED '+f(v);
-  const B='•';
-  const DIV='─'.repeat(24);
-  const ly=window._sheetLY||{};
-  const yoy=(ty,lyv)=>{if(!lyv)return null;const p=((ty-lyv)/lyv*100);return(p>=0?'+':'')+p.toFixed(1)+'% (vs '+f(lyv)+')';};
-  const lines=[];
-  // Header
-  lines.push(DIV);
-  lines.push('Ventum House – Daily Report');
-  lines.push(slk(d.date));
-  if(sum)lines.push(sum);
-  lines.push(DIV);
-  lines.push('Daily Performance Summary');
-  // Retail
-  lines.push('Retail (In-store)');
-  if(d.rT>0){lines.push(B+' Target: '+ae(d.rT));lines.push(B+' Sales: '+ae(d.rA));lines.push(B+' Achievement: '+pct(rP));lines.push(B+(d.rA>=d.rT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.rA-d.rT))));}else{lines.push(B+' Sales: '+ae(d.rA));}
-  lines.push('Breakdown:  '+(rB||'(add retail breakdown)'));
-  const rYoY=yoy(d.rA,ly.rLY);if(rYoY)lines.push(B+' YoY: '+rYoY);
-  lines.push(B+' Transactions: '+d.rTx);
-  lines.push(B+' ATV: '+(d.rTx>0?ae(Math.round(d.rA/d.rTx)):'AED —'));
-  lines.push(DIV);
-  // Service
-  lines.push('Service');
-  if(d.sT>0){lines.push(B+' Target: '+ae(d.sT));lines.push(B+' Sales: '+ae(d.sA));lines.push(B+' Achievement: '+pct(sP));lines.push(B+(d.sA>=d.sT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.sA-d.sT))));}else{lines.push(B+' Sales: '+ae(d.sA));}
-  lines.push('Breakdown:  '+(sB||'(add service breakdown)'));
-  const sYoY=yoy(d.sA,ly.sLY);if(sYoY)lines.push(B+' YoY: '+sYoY);
-  lines.push(B+' Transactions: '+d.sTx);
-  lines.push(B+' ATV: '+(d.sTx>0?ae(Math.round(d.sA/d.sTx)):'AED —'));
-  lines.push(DIV);
-  // Coffee
-  const cDel=d.del+d.car+d.kee;
-  const cIn=Math.max(0,Math.round(d.cA-cDel));
-  lines.push('Coffee');
-  if(d.cT>0){lines.push(B+' Target: '+ae(d.cT));lines.push(B+' Sales: '+ae(d.cA));lines.push(B+' Achievement: '+pct(cP));lines.push(B+(d.cA>=d.cT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.cA-d.cT))));}else{lines.push(B+' Sales: '+ae(d.cA));}
-  if(d.cA>0){const ip=Math.round(cIn/d.cA*100);const dp=Math.round(cDel/d.cA*100);lines.push(B+' In-store: '+ae(cIn)+' ('+ip+'%)');lines.push(B+' Delivery: '+ae(cDel)+' ('+dp+'%)');lines.push('  – Deliveroo: '+ae(d.del));lines.push('  – Careem: '+ae(d.car));lines.push('  – Keeta: '+ae(d.kee));}
-  const cYoY=yoy(d.cA,ly.cLY);if(cYoY)lines.push(B+' YoY: '+cYoY);
-  lines.push(B+' Transactions: '+d.cTx);
-  lines.push(B+' ATV: '+(d.cTx>0?ae(Math.round(d.cA/d.cTx)):'AED —'));
-  lines.push(DIV);
-  // Store Totals
-  lines.push('Store Totals');
-  lines.push(B+' Store Target: '+ae(d.tT));
-  lines.push(B+' Total Sales: '+ae(d.tA));
-  lines.push(B+' Achievement: '+pct(tP));
-  lines.push(B+(d.tA>=d.tT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.tA-d.tT))));
-  const tYoY=yoy(d.tA,ly.tLY);if(tYoY)lines.push(B+' YoY: '+tYoY);
-  lines.push(B+' Total Transactions: '+d.tTx);
-  lines.push(B+' Store ATV: '+(d.tTx>0?ae(Math.round(d.tA/d.tTx)):'AED —'));
-  lines.push(DIV);
-  // Footfall
-  if(d.ffTY>0){
-    lines.push('Footfall & Conversion');
-    lines.push(B+' Footfall TY: '+f(d.ffTY));
-    if(ly.ffLY){lines.push(B+' Footfall LY: '+f(ly.ffLY));lines.push(B+' YoY: '+(((d.ffTY-ly.ffLY)/ly.ffLY*100)>=0?'+':'')+((d.ffTY-ly.ffLY)/ly.ffLY*100).toFixed(1)+'%');}
-    lines.push(B+' Conversion TY: '+(d.cvTY||'—'));
-    if(ly.cvLY&&!ly.cvLY.includes('#'))lines.push(B+' Conversion LY: '+ly.cvLY);
-    lines.push(DIV);
-  }
-  // Manager's Commentary
-  const mgr=(document.getElementById('mgrCom').value.trim()||document.getElementById('mgrNotes').value.trim());
-  if(mgr){lines.push("Manager's Commentary");lines.push(mgr);lines.push(DIV);}
-  // Key Points
   const ki=document.getElementById('dKI').value.trim();
-  if(ki){lines.push('Key Points');ki.split('\n').filter(Boolean).forEach(l=>lines.push(B+' '+l));lines.push(DIV);}
-  // MTD Section
-  const mtd=window._sheetMTD;
-  if(mtd&&mtd.days>0){
-    lines.push(d.month+' — Month to Date');
-    lines.push(B+' Days Traded: '+mtd.days);
-    const mtdSec=(label,a,t,lyv)=>{
-      lines.push(label);
-      lines.push(B+' MTD Sales: '+ae(a));
-      lines.push(B+' MTD Target: '+ae(t));
-      lines.push(B+' Achievement: '+(t>0?pct(a/t*100):'N/A'));
-      if(a>=t)lines.push(B+' Surplus: '+ae(Math.round(a-t)));
-      else lines.push(B+' Shortfall: '+ae(Math.round(t-a)));
-      if(lyv>0){const p=((a-lyv)/lyv*100);lines.push(B+' MTD LY: '+ae(lyv)+' ('+(p>=0?'+':'')+p.toFixed(1)+'%)');}
-      lines.push(DIV);
-    };
-    mtdSec('Retail',mtd.rA,mtd.rT,mtd.rLY);
-    mtdSec('Service',mtd.sA,mtd.sT,mtd.sLY);
-    mtdSec('Coffee',mtd.cA,mtd.cT,mtd.cLY);
-    mtdSec('Store Total',mtd.tA,mtd.tT,mtd.tLY);
-    const mp=mtd.tT>0?(mtd.tA/mtd.tT*100):0;
-    const rmp=mtd.rT>0?(mtd.rA/mtd.rT*100):0;
-    const smp=mtd.sT>0?(mtd.sA/mtd.sT*100):0;
-    const cmp=mtd.cT>0?(mtd.cA/mtd.cT*100):0;
-    let narr=d.month+' is ';
-    if(mp>=110)narr+='tracking comfortably ahead of MTD target';
-    else if(mp>=100)narr+='tracking ahead of MTD target';
-    else if(mp>=90)narr+='tracking slightly below MTD target';
-    else narr+='tracking below MTD target';
-    narr+=' after '+(mtd.days-1)+' trading days. ';
-    const ds=(p,n)=>p>=100?n+' is ahead of target':n+' remains below required pacing';
-    narr+=ds(rmp,'Retail')+', while '+ds(smp,'service').toLowerCase()+' and '+ds(cmp,'coffee').toLowerCase()+'. ';
-    narr+='Total MTD sales stand at '+ae(mtd.tA)+' against a target of '+ae(mtd.tT)+'.';
-    lines.push(narr);
-    lines.push(DIV);
+  const pc=(a,t)=>t>0?Math.round(a/t*100)+'%':'—';
+  const ch=(a,l)=>{if(!(l>0))return '';const v=(a-l)/l*100;return (v>=0?'+':'')+Math.round(v)+'%';};
+  const atv=(a,n)=>n>0?' · ATV '+f(a/n):'';
+  const vs=(a,t)=>'AED '+f(a)+(t>0?' vs '+f(t)+' ('+pc(a,t)+')':'');
+  const lyT=(a,l)=>l>0?' · LY '+ch(a,l):'';
+  const L=[];
+  L.push('*Ventum House – Daily Report*');
+  L.push(':calendar: '+dLong(d.date));
+  L.push('');
+  if(sum){L.push('*Summary*');L.push(sum);L.push('');}
+  L.push('*Store*  '+vs(d.tA,d.tT)+lyT(d.tA,ly.tLY)+' · '+d.tTx+' tx'+atv(d.tA,d.tTx));
+  L.push('*Retail*  '+vs(d.rA,d.rT)+lyT(d.rA,ly.rLY)+' · '+d.rTx+' tx'+atv(d.rA,d.rTx));
+  if(rB)L.push('      ↳ '+rB);
+  L.push('*Service*  '+vs(d.sA,d.sT)+lyT(d.sA,ly.sLY)+' · '+d.sTx+' jobs'+atv(d.sA,d.sTx));
+  if(sB)L.push('      ↳ '+sB);
+  const del=d.del+d.car+d.kee;
+  L.push('*Coffee*  '+vs(d.cA,d.cT)+lyT(d.cA,ly.cLY)+' · '+d.cTx+' tx'+atv(d.cA,d.cTx));
+  if(del>0){const parts=[];if(d.del)parts.push('Deliveroo '+f(d.del));if(d.car)parts.push('Careem '+f(d.car));if(d.kee)parts.push('Keeta '+f(d.kee));L.push('      ↳ Delivery AED '+f(del)+' ('+pc(del,d.cA)+'): '+parts.join(' · '));}
+  if(d.ffTY>0){
+    let ff='*Footfall*  '+f(d.ffTY)+(ly.ffLY>0?' vs '+f(ly.ffLY)+' LY ('+ch(d.ffTY,ly.ffLY)+')':'')+' · Conversion '+(d.cvTY||'—');
+    if(ly.cvLY&&!String(ly.cvLY).includes('#'))ff+=' (LY '+ly.cvLY+')';
+    L.push(ff);
   }
-  const report=lines.join('\n');
+  if(ki){L.push('');L.push('*Key points*');ki.split('\n').map(x=>x.trim().replace(/^[•\-]\s*/,'')).filter(Boolean).forEach(x=>L.push('• '+x));}
+  if(m&&m.days>0){
+    L.push('');
+    L.push('*'+(d.month||'Month')+' to date*  ('+m.days+' trading day'+(m.days!==1?'s':'')+')');
+    L.push('Store AED '+f(m.tA)+' · '+pc(m.tA,m.tT)+' of target to date (AED '+f(m.tT)+')'+(m.tF>0?' · '+pc(m.tA,m.tF)+' of month (AED '+f(m.tF)+')':'')+(m.tLY>0?' · LY '+ch(m.tA,m.tLY):''));
+    L.push('Retail '+pc(m.rA,m.rT)+' · Service '+pc(m.sA,m.sT)+' · Coffee '+pc(m.cA,m.cT)+'  of target to date');
+    if(m.tF>0&&m.tA<m.tF){
+      const [yy,mm,dd]=d.date.split('-').map(Number);const left=new Date(yy,mm,0).getDate()-dd;
+      L.push('Still needed for the month: AED '+f(m.tF-m.tA)+(left>0?' over '+left+' day'+(left!==1?'s':''):''));
+    }
+  }
+  const report=L.join('\n');
   document.getElementById('repOut').textContent=report;
   document.getElementById('repCard').style.display='block';
   document.getElementById('repCard').scrollIntoView({behavior:'smooth'});
