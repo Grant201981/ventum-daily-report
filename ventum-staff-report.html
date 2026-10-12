@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v9</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v10</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -474,6 +474,7 @@ function aiFacts(){
 function parseAi(t){
   t=String(t||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
   const i=t.indexOf('{'),j=t.lastIndexOf('}');
+  if(i<0||j<=i){if(t.length>40)return {summary:t,key_points:[]};throw new Error('reply was empty');}
   const o=JSON.parse(t.slice(i,j+1));
   if(!o.summary)throw new Error('No summary in reply');
   return o;
@@ -492,10 +493,19 @@ async function aiWrite(){
   btn.disabled=true;btn.style.opacity='.6';
   setAi('load','Writing summary and key points… (about 10–15 seconds)');
   try{
-    const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({task:'report',notes:notes||'(no notes today)',facts:aiFacts()})});
-    const j=await r.json();
-    if(j.error)throw new Error(j.error);
-    const o=parseAi(j.text);
+    let o=null,lastErr=null;
+    for(let attempt=1;attempt<=2&&!o;attempt++){
+      try{
+        if(attempt===2)setAi('load','First try failed — trying once more…');
+        const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({task:'report',notes:notes||'(no notes today)',facts:aiFacts()})});
+        const body=await r.text();
+        if(!body.trim())throw new Error('connector sent back nothing');
+        let j;try{j=JSON.parse(body);}catch(e){throw new Error(body.trim().startsWith('<')?'connector sent a web page (check the deployment)':'connector reply was cut off');}
+        if(j.error)throw new Error(j.error);
+        o=parseAi(j.text);
+      }catch(e){lastErr=e;}
+    }
+    if(!o)throw lastErr||new Error('no reply');
     document.getElementById('dSum').value=o.summary.trim();
     document.getElementById('dKI').value=(o.key_points||[]).map(x=>String(x).trim()).filter(Boolean).join('\n');
     if(o.mtd_summary)document.getElementById('dMtd').value=String(o.mtd_summary).trim();
