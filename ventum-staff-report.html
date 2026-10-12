@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v8</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v9</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -136,6 +136,9 @@ textarea:focus{outline:none;border-color:#6366f1}
   <hr class="div">
   <label>Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
   <textarea id="dKI" style="min-height:90px" placeholder="AI writes these too"></textarea>
+  <hr class="div">
+  <label>Month-to-date summary <span style="font-weight:400;color:#aaa">— edit freely</span></label>
+  <textarea id="dMtd" style="min-height:80px" placeholder="AI writes the month-to-date paragraph too"></textarea>
   <p class="hint" style="margin:6px 0 10px">No AI today? <a href="#" onclick="writeAll();return false" style="color:#6366f1">Use the quick template instead</a></p>
   <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
 </div>
@@ -311,6 +314,7 @@ async function loadFromSheet(){
 // Reload sheet when date changes (if sheet was already connected)
 function onDateChange(){
   window._sheetTgt=null;window._sheetLY=null;window._sheetMTD=null;
+  ['dSum','dKI','dMtd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   loadTargets();
   if(sheetLoaded){loadFromSheet();}
 }
@@ -436,7 +440,7 @@ function lc1(t){t=String(t||'');const w=t.split(/[\s,]/)[0];return (w&&w!==w.toL
 
 // ── AI write-up (summary + key points) ────────────────────
 const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
-const AI_GUIDE="You write the narrative parts of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"]}. summary: 3 to 4 sentences covering how the day went against target and last year, what drove it, and the manager's notes (reasons for footfall, why last year was higher or lower, events, weather). key_points: exactly 3 short, specific points that add something the summary does not. British English, plain text, no emojis or markdown. Use only the figures and the notes. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand names properly (POC, ENVE, Lezyne, XLAB, Ventum). If a note contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
+const AI_GUIDE="You write the narrative parts of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"],\"mtd_summary\":\"...\"}. summary: 3 to 4 sentences covering how the day went against target and last year, what drove it, and the manager's notes (reasons for footfall, why last year was higher or lower, events, weather). key_points: exactly 3 short, specific points that add something the summary does not. mtd_summary: 2 to 3 sentences on the month so far: overall pacing against target to date and against last year, which departments are ahead or behind and by how much, and what is still needed for the month; do not repeat the daily summary. British English, plain text, no emojis or markdown. Use only the figures and the notes. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand names properly (POC, ENVE, Lezyne, XLAB, Ventum). If a note contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
 document.addEventListener('DOMContentLoaded',()=>{['rB','sB'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('blur',()=>{if(el.value.trim())el.value=tidy(el.value);});});});
 function setAi(type,msg){
   const el=document.getElementById('aiStatus');
@@ -461,7 +465,9 @@ function aiFacts(){
   if(d.ffTY>0)L.push('Footfall: '+f(d.ffTY)+(ly.ffLY>0?' vs '+f(ly.ffLY)+' last year':'')+', conversion '+(d.cvTY||'—')+(ly.cvLY&&!String(ly.cvLY).includes('#')?' vs '+ly.cvLY+' last year':''));
   if(m&&m.days>0){
     L.push('Month to date ('+m.days+' trading days): store AED '+f(m.tA)+', '+(m.tT>0?(m.tA/m.tT*100).toFixed(1):'0')+'% of target to date (AED '+f(m.tT)+'), '+(m.tF>0?(m.tA/m.tF*100).toFixed(1):'0')+'% of the full month target (AED '+f(m.tF)+')'+(m.tLY>0?', vs last year '+((m.tA-m.tLY)/m.tLY*100>=0?'+':'')+((m.tA-m.tLY)/m.tLY*100).toFixed(1)+'%':''));
-    L.push('MTD by department vs target to date: retail '+(m.rT>0?(m.rA/m.rT*100).toFixed(1):'0')+'%, service '+(m.sT>0?(m.sA/m.sT*100).toFixed(1):'0')+'%, coffee '+(m.cT>0?(m.cA/m.cT*100).toFixed(1):'0')+'%');
+    const dep=(n,a,t,l)=>n+' AED '+f(a)+' ('+(t>0?(a/t*100).toFixed(1):'0')+'% of target to date AED '+f(t)+(l>0?', vs last year '+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%':'')+')';
+    L.push('MTD by department: '+dep('retail',m.rA,m.rT,m.rLY)+'; '+dep('service',m.sA,m.sT,m.sLY)+'; '+dep('coffee',m.cA,m.cT,m.cLY));
+    if(m.tF>0){const [yy,mm,dd]=d.date.split('-').map(Number);const left=new Date(yy,mm,0).getDate()-dd;L.push('Still needed to hit the full month target: AED '+f(Math.max(0,m.tF-m.tA))+' with '+left+' days left');}
   }
   return L.join('\n');
 }
@@ -492,6 +498,7 @@ async function aiWrite(){
     const o=parseAi(j.text);
     document.getElementById('dSum').value=o.summary.trim();
     document.getElementById('dKI').value=(o.key_points||[]).map(x=>String(x).trim()).filter(Boolean).join('\n');
+    if(o.mtd_summary)document.getElementById('dMtd').value=String(o.mtd_summary).trim();
     setAi('ok','Done. Edit if needed, then Generate Slack Report.');
   }catch(e){
     await copyPromptFallback(notes,'AI did not respond ('+e.message+').');
@@ -688,7 +695,8 @@ function genReport(){
     else if(!ah.length)narr+='Retail, service and coffee all remain below required pacing. ';
     else narr+=cap(jn(ah))+(ah.length>1?' are':' is')+' ahead of target, while '+jn(bl)+(bl.length>1?' remain':' remains')+' below required pacing. ';
     narr+='Total MTD sales stand at '+ae(mtd.tA)+' against a target of '+ae(mtd.tT)+'.';
-    lines.push(narr);
+    const mtdAi=(document.getElementById('dMtd')||{}).value;
+    lines.push(mtdAi&&mtdAi.trim()?mtdAi.trim():narr);
     lines.push(DIV);
   }
   const report=lines.join('\n');
