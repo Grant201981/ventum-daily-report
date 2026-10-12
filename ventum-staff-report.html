@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v10</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v11</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -139,6 +139,9 @@ textarea:focus{outline:none;border-color:#6366f1}
   <hr class="div">
   <label>Month-to-date summary <span style="font-weight:400;color:#aaa">— edit freely</span></label>
   <textarea id="dMtd" style="min-height:80px" placeholder="AI writes the month-to-date paragraph too"></textarea>
+  <hr class="div">
+  <label>Run rate outlook <span style="font-weight:400;color:#aaa">— edit freely</span></label>
+  <textarea id="dOut" style="min-height:70px" placeholder="AI writes the closing outlook on the run rate"></textarea>
   <p class="hint" style="margin:6px 0 10px">No AI today? <a href="#" onclick="writeAll();return false" style="color:#6366f1">Use the quick template instead</a></p>
   <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
 </div>
@@ -314,7 +317,7 @@ async function loadFromSheet(){
 // Reload sheet when date changes (if sheet was already connected)
 function onDateChange(){
   window._sheetTgt=null;window._sheetLY=null;window._sheetMTD=null;
-  ['dSum','dKI','dMtd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['dSum','dKI','dMtd','dOut'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   loadTargets();
   if(sheetLoaded){loadFromSheet();}
 }
@@ -438,9 +441,18 @@ function tidy(t){
 }
 function lc1(t){t=String(t||'');const w=t.split(/[\s,]/)[0];return (w&&w!==w.toLowerCase()&&w!==w.charAt(0).toUpperCase()+w.slice(1).toLowerCase())?t:t.charAt(0).toLowerCase()+t.slice(1);}
 
+// ── run rate ──────────────────────────────────────────────
+function runRate(dv,m){
+  if(!m||!dv)return null;
+  const [y,mo,dd]=dv.split('-').map(Number);const dim=new Date(y,mo,0).getDate();const left=dim-dd;
+  const avg=m.tA/dd, straight=avg*dim, weighted=m.tT>0?m.tA/m.tT*m.tF:0;
+  const need=Math.max(0,m.tF-m.tA), perDay=left>0?need/left:0;
+  return {dim,dd,left,avg,straight,weighted,need,perDay,tF:m.tF};
+}
+
 // ── AI write-up (summary + key points) ────────────────────
 const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
-const AI_GUIDE="You write the narrative parts of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"],\"mtd_summary\":\"...\"}. summary: 3 to 4 sentences covering how the day went against target and last year, what drove it, and the manager's notes (reasons for footfall, why last year was higher or lower, events, weather). key_points: exactly 3 short, specific points that add something the summary does not. mtd_summary: 2 to 3 sentences on the month so far: overall pacing against target to date and against last year, which departments are ahead or behind and by how much, and what is still needed for the month; do not repeat the daily summary. British English, plain text, no emojis or markdown. Use only the figures and the notes. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand names properly (POC, ENVE, Lezyne, XLAB, Ventum). If a note contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
+const AI_GUIDE="You are writing the narrative parts of the daily Slack sales report for Ventum House Dubai (premium cycling retail, workshop and café). You are Grant, the store manager, writing in your own voice to the owner and the CEO. Write in the first person ('we', 'I', 'our'); never refer to 'the manager' or to 'notes'. Voice: an experienced British retail operator: direct, confident, commercially sharp, calm. Use trading language naturally (trading, footfall, conversion, ATV, pacing, run rate, LY). Short, clean sentences. No hype, no filler, no clichés, no exclamation marks. Own a weak day plainly and say what drove it; credit a strong one without gushing. Style examples: 'May closed significantly ahead of overall store target, driven heavily through premium retail sales.' 'Coffee remained the weakest department versus target; weekday transaction counts softened.' Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"],\"mtd_summary\":\"...\",\"outlook\":\"...\"}. summary: 3 to 4 sentences on how the day traded against target and LY, what drove it, and the context I give you (footfall reasons, why LY was higher or lower, events, weather), written as my own explanation. key_points: exactly 3 short, specific points that add something the summary does not; where it fits, make one a clear action or focus for tomorrow. mtd_summary: 2 to 3 sentences on the month so far: pacing against target to date and LY, which departments are ahead or behind and by how much; do not repeat the daily summary. outlook: 2 sentences on the run rate: where the month is heading on current pacing versus the full month target, and what daily average is needed from here; end on the focus, not on excuses. British English, plain text, no emojis or markdown. Use only the figures and my context. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand and product names properly (POC, ENVE, Lezyne, XLAB, Ventum, NS1, Tempus). If my context contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
 document.addEventListener('DOMContentLoaded',()=>{['rB','sB'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('blur',()=>{if(el.value.trim())el.value=tidy(el.value);});});});
 function setAi(type,msg){
   const el=document.getElementById('aiStatus');
@@ -467,7 +479,11 @@ function aiFacts(){
     L.push('Month to date ('+m.days+' trading days): store AED '+f(m.tA)+', '+(m.tT>0?(m.tA/m.tT*100).toFixed(1):'0')+'% of target to date (AED '+f(m.tT)+'), '+(m.tF>0?(m.tA/m.tF*100).toFixed(1):'0')+'% of the full month target (AED '+f(m.tF)+')'+(m.tLY>0?', vs last year '+((m.tA-m.tLY)/m.tLY*100>=0?'+':'')+((m.tA-m.tLY)/m.tLY*100).toFixed(1)+'%':''));
     const dep=(n,a,t,l)=>n+' AED '+f(a)+' ('+(t>0?(a/t*100).toFixed(1):'0')+'% of target to date AED '+f(t)+(l>0?', vs last year '+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%':'')+')';
     L.push('MTD by department: '+dep('retail',m.rA,m.rT,m.rLY)+'; '+dep('service',m.sA,m.sT,m.sLY)+'; '+dep('coffee',m.cA,m.cT,m.cLY));
-    if(m.tF>0){const [yy,mm,dd]=d.date.split('-').map(Number);const left=new Date(yy,mm,0).getDate()-dd;L.push('Still needed to hit the full month target: AED '+f(Math.max(0,m.tF-m.tA))+' with '+left+' days left');}
+    const rr=runRate(d.date,m);
+    if(rr&&rr.tF>0){
+      L.push('Run rate: average AED '+f(rr.avg)+' per day over '+rr.dd+' days; straight-line projection AED '+f(rr.straight)+' ('+(rr.straight/rr.tF*100).toFixed(1)+'% of the AED '+f(rr.tF)+' month target); projection on current pacing against the daily target phasing AED '+f(rr.weighted)+' ('+(rr.weighted/rr.tF*100).toFixed(1)+'%)');
+      L.push('Still needed for the month: AED '+f(rr.need)+' over '+rr.left+' days, which is AED '+f(rr.perDay)+' per day against AED '+f(rr.avg)+' per day so far');
+    }
   }
   return L.join('\n');
 }
@@ -509,6 +525,7 @@ async function aiWrite(){
     document.getElementById('dSum').value=o.summary.trim();
     document.getElementById('dKI').value=(o.key_points||[]).map(x=>String(x).trim()).filter(Boolean).join('\n');
     if(o.mtd_summary)document.getElementById('dMtd').value=String(o.mtd_summary).trim();
+    if(o.outlook)document.getElementById('dOut').value=String(o.outlook).trim();
     setAi('ok','Done. Edit if needed, then Generate Slack Report.');
   }catch(e){
     await copyPromptFallback(notes,'AI did not respond ('+e.message+').');
@@ -617,13 +634,13 @@ function genReport(){
   const lines=[];
   // Header
   lines.push(DIV);
-  lines.push('Ventum House – Daily Report');
+  lines.push('*Ventum House – Daily Report*');
   lines.push(slk(d.date));
   if(sum)lines.push(sum);
   lines.push(DIV);
-  lines.push('Daily Performance Summary');
+  lines.push('*Daily Performance Summary*');
   // Retail
-  lines.push('Retail (In-store)');
+  lines.push('*Retail (In-store)*');
   if(d.rT>0){lines.push(B+' Target: '+ae(d.rT));lines.push(B+' Sales: '+ae(d.rA));lines.push(B+' Achievement: '+pct(rP));lines.push(B+(d.rA>=d.rT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.rA-d.rT))));}else{lines.push(B+' Sales: '+ae(d.rA));}
   lines.push('Breakdown:  '+(rB||'(add retail breakdown)'));
   const rYoY=yoy(d.rA,ly.rLY);if(rYoY)lines.push(B+' YoY: '+rYoY);
@@ -631,7 +648,7 @@ function genReport(){
   lines.push(B+' ATV: '+(d.rTx>0?ae(Math.round(d.rA/d.rTx)):'AED —'));
   lines.push(DIV);
   // Service
-  lines.push('Service');
+  lines.push('*Service*');
   if(d.sT>0){lines.push(B+' Target: '+ae(d.sT));lines.push(B+' Sales: '+ae(d.sA));lines.push(B+' Achievement: '+pct(sP));lines.push(B+(d.sA>=d.sT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.sA-d.sT))));}else{lines.push(B+' Sales: '+ae(d.sA));}
   lines.push('Breakdown:  '+(sB||'(add service breakdown)'));
   const sYoY=yoy(d.sA,ly.sLY);if(sYoY)lines.push(B+' YoY: '+sYoY);
@@ -641,7 +658,7 @@ function genReport(){
   // Coffee
   const cDel=d.del+d.car+d.kee;
   const cIn=Math.max(0,Math.round(d.cA-cDel));
-  lines.push('Coffee');
+  lines.push('*Coffee*');
   if(d.cT>0){lines.push(B+' Target: '+ae(d.cT));lines.push(B+' Sales: '+ae(d.cA));lines.push(B+' Achievement: '+pct(cP));lines.push(B+(d.cA>=d.cT?' Surplus: ':' Shortfall: ')+ae(Math.abs(Math.round(d.cA-d.cT))));}else{lines.push(B+' Sales: '+ae(d.cA));}
   if(d.cA>0){const ip=Math.round(cIn/d.cA*100);const dp=Math.round(cDel/d.cA*100);lines.push(B+' In-store: '+ae(cIn)+' ('+ip+'%)');lines.push(B+' Delivery: '+ae(cDel)+' ('+dp+'%)');lines.push('  – Deliveroo: '+ae(d.del));lines.push('  – Careem: '+ae(d.car));lines.push('  – Keeta: '+ae(d.kee));}
   const cYoY=yoy(d.cA,ly.cLY);if(cYoY)lines.push(B+' YoY: '+cYoY);
@@ -649,7 +666,7 @@ function genReport(){
   lines.push(B+' ATV: '+(d.cTx>0?ae(Math.round(d.cA/d.cTx)):'AED —'));
   lines.push(DIV);
   // Store Totals
-  lines.push('Store Totals');
+  lines.push('*Store Totals*');
   lines.push(B+' Store Target: '+ae(d.tT));
   lines.push(B+' Total Sales: '+ae(d.tA));
   lines.push(B+' Achievement: '+pct(tP));
@@ -660,7 +677,7 @@ function genReport(){
   lines.push(DIV);
   // Footfall
   if(d.ffTY>0){
-    lines.push('Footfall & Conversion');
+    lines.push('*Footfall & Conversion*');
     lines.push(B+' Footfall TY: '+f(d.ffTY));
     if(ly.ffLY){lines.push(B+' Footfall LY: '+f(ly.ffLY));lines.push(B+' YoY: '+(((d.ffTY-ly.ffLY)/ly.ffLY*100)>=0?'+':'')+((d.ffTY-ly.ffLY)/ly.ffLY*100).toFixed(1)+'%');}
     lines.push(B+' Conversion TY: '+(d.cvTY||'—'));
@@ -669,14 +686,14 @@ function genReport(){
   }
   // Key Points
   const ki=document.getElementById('dKI').value.trim();
-  if(ki){lines.push('Key Points');ki.split('\n').map(l=>l.trim().replace(/^[•\-]\s*/,'')).filter(Boolean).forEach(l=>lines.push(B+' '+l));lines.push(DIV);}
+  if(ki){lines.push('*Key Points*');ki.split('\n').map(l=>l.trim().replace(/^[•\-]\s*/,'')).filter(Boolean).forEach(l=>lines.push(B+' '+l));lines.push(DIV);}
   // MTD Section
   const mtd=window._sheetMTD;
   if(mtd&&mtd.days>0){
-    lines.push(d.month+' — Month to Date');
+    lines.push('*'+d.month+' — Month to Date*');
     lines.push(B+' Days Traded: '+mtd.days);
     const mtdSec=(label,a,t,lyv)=>{
-      lines.push(label);
+      lines.push('*'+label+'*');
       lines.push(B+' MTD Sales: '+ae(a));
       lines.push(B+' MTD Target: '+ae(t));
       lines.push(B+' Achievement: '+(t>0?pct(a/t*100):'N/A'));
@@ -707,6 +724,19 @@ function genReport(){
     narr+='Total MTD sales stand at '+ae(mtd.tA)+' against a target of '+ae(mtd.tT)+'.';
     const mtdAi=(document.getElementById('dMtd')||{}).value;
     lines.push(mtdAi&&mtdAi.trim()?mtdAi.trim():narr);
+    lines.push(DIV);
+  }
+  // Run rate & outlook
+  const rr=runRate(d.date,mtd);
+  if(rr&&rr.tF>0&&mtd.tA>0){
+    lines.push('*Run Rate & Outlook*');
+    lines.push(B+' Daily average (MTD): '+ae(Math.round(rr.avg)));
+    lines.push(B+' Projected month (straight-line): '+ae(Math.round(rr.straight))+' ('+pct(rr.straight/rr.tF*100)+' of target)');
+    lines.push(B+' Projected month (target-phased): '+ae(Math.round(rr.weighted))+' ('+pct(rr.weighted/rr.tF*100)+' of target)');
+    lines.push(B+' Full month target: '+ae(Math.round(rr.tF)));
+    if(rr.left>0&&rr.need>0)lines.push(B+' Required to hit target: '+ae(Math.round(rr.perDay))+' per day for the remaining '+rr.left+' day'+(rr.left!==1?'s':''));
+    const outl=(document.getElementById('dOut')||{}).value;
+    if(outl&&outl.trim())lines.push(outl.trim());
     lines.push(DIV);
   }
   const report=lines.join('\n');
