@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v4</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v5</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -135,6 +135,17 @@ textarea:focus{outline:none;border-color:#6366f1}
   <textarea id="dKI" style="min-height:110px" placeholder="Click Write Narratives above"></textarea>
   <hr class="div">
   <button class="btn bg" onclick="genReport()">Generate Slack Report</button>
+</div>
+
+<!-- MANAGER'S COMMENTARY (AI) -->
+<div class="card">
+  <h2>🗣️ Manager's Commentary</h2>
+  <label>Your notes <span style="font-weight:400;color:#aaa">— rough is fine: footfall, why LY was high, weather, events…</span></label>
+  <textarea id="mgrNotes" style="min-height:80px" placeholder="e.g. footfall down, school hols started. LY high bc of the big Afkar order"></textarea>
+  <button class="btn bp" id="aiBtn" style="margin-top:8px" onclick="polishNotes()">✨ Rewrite with AI</button>
+  <div id="aiStatus" class="sstatus"></div>
+  <label>Commentary for the report <span style="font-weight:400;color:#aaa">— edit freely</span></label>
+  <textarea id="mgrCom" style="min-height:100px" placeholder="The AI version appears here. You can also type your own."></textarea>
 </div>
 
 <!-- OUTPUT -->
@@ -405,6 +416,56 @@ function calcTotals(){
   document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'—','neu');
 }
 
+// ── manager's commentary (AI) ─────────────────────────────
+// Paste the Google Apps Script web app URL between the quotes once it is deployed.
+const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
+const AI_GUIDE="You write the Manager's Commentary section of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Rewrite the manager's rough notes into 2 to 4 clear, professional sentences in British English. Plain text only: no headings, bullet points, emojis or markdown. Use only what is in the notes and the figures. Never invent reasons, events or numbers. Where it helps, refer to figures from the data to support the manager's point. Keep the manager's meaning and keep the tone confident and factual, not salesy. Reply with the commentary only.";
+function setAi(type,msg){
+  const el=document.getElementById('aiStatus');
+  const cls={load:'ss-load',ok:'ss-ok',warn:'ss-warn',err:'ss-err'};
+  const icons={load:'⏳',ok:'✓',warn:'⚠️',err:'✗'};
+  el.className='sstatus '+(cls[type]||'ss-err');
+  el.textContent=(icons[type]||'')+' '+msg;
+  el.style.display='block';
+}
+function aiFacts(){
+  const d=getData(),ly=window._sheetLY||{};
+  const pc=(a,t)=>t>0?' ('+(a/t*100).toFixed(1)+'% of target AED '+f(t)+')':'';
+  const vly=(a,l)=>l>0?', LY AED '+f(l)+' ('+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%)':'';
+  const L=[];
+  if(d.date)L.push('Date: '+slk(d.date));
+  L.push('Retail: AED '+f(d.rA)+' from '+d.rTx+' transactions'+pc(d.rA,d.rT)+vly(d.rA,ly.rLY));
+  L.push('Service: AED '+f(d.sA)+' from '+d.sTx+' jobs'+pc(d.sA,d.sT)+vly(d.sA,ly.sLY));
+  L.push('Coffee: AED '+f(d.cA)+' from '+d.cTx+' transactions'+pc(d.cA,d.cT)+vly(d.cA,ly.cLY));
+  L.push('Store total: AED '+f(d.tA)+pc(d.tA,d.tT)+vly(d.tA,ly.tLY));
+  if(d.ffTY>0)L.push('Footfall: '+f(d.ffTY)+(ly.ffLY>0?' vs '+f(ly.ffLY)+' LY':'')+', conversion '+(d.cvTY||'—')+(ly.cvLY&&!String(ly.cvLY).includes('#')?' vs '+ly.cvLY+' LY':''));
+  return L.join('\n');
+}
+async function copyPromptFallback(notes,why){
+  const prompt=AI_GUIDE+'\n\nFigures:\n'+aiFacts()+'\n\nManager notes:\n'+notes;
+  try{await navigator.clipboard.writeText(prompt);setAi('warn',why+' A ready-made prompt has been copied: paste it into Claude, then paste the answer into the box below.');}
+  catch(e){setAi('err',why+' Type your commentary in the box below instead.');}
+}
+async function polishNotes(){
+  const notes=document.getElementById('mgrNotes').value.trim();
+  if(!notes){setAi('warn','Type a few notes first.');return;}
+  if(notes.length>1500){setAi('warn','Keep the notes under 1,500 characters.');return;}
+  if(!AI_URL){await copyPromptFallback(notes,'AI is not connected yet.');return;}
+  const btn=document.getElementById('aiBtn');
+  btn.disabled=true;btn.style.opacity='.6';
+  setAi('load','Writing commentary… (about 10 seconds)');
+  try{
+    const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({notes,facts:aiFacts()})});
+    const j=await r.json();
+    if(j.error)throw new Error(j.error);
+    if(!j.text)throw new Error('Empty reply');
+    document.getElementById('mgrCom').value=j.text;
+    setAi('ok','Done. Edit it if needed, then Generate Slack Report.');
+  }catch(e){
+    await copyPromptFallback(notes,'AI did not respond ('+e.message+').');
+  }finally{btn.disabled=false;btn.style.opacity='';}
+}
+
 // ── narrative generator ───────────────────────────────────
 function writeAll(){
   const d=getData();
@@ -556,6 +617,9 @@ function genReport(){
     if(ly.cvLY&&!ly.cvLY.includes('#'))lines.push(B+' Conversion LY: '+ly.cvLY);
     lines.push(DIV);
   }
+  // Manager's Commentary
+  const mgr=(document.getElementById('mgrCom').value.trim()||document.getElementById('mgrNotes').value.trim());
+  if(mgr){lines.push("Manager's Commentary");lines.push(mgr);lines.push(DIV);}
   // Key Points
   const ki=document.getElementById('dKI').value.trim();
   if(ki){lines.push('Key Points');ki.split('\n').filter(Boolean).forEach(l=>lines.push(B+' '+l));lines.push(DIV);}
