@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v11</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v12</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -132,7 +132,7 @@ textarea:focus{outline:none;border-color:#6366f1}
   <button class="btn bp" id="aiBtn" style="margin-top:8px" onclick="aiWrite()">✨ Write summary &amp; key points with AI</button>
   <div id="aiStatus" class="sstatus"></div>
   <label>Summary <span style="font-weight:400;color:#aaa">— edit freely</span></label>
-  <textarea id="dSum" style="min-height:110px" placeholder="AI writes this from the figures, what was sold and your notes"></textarea>
+  <textarea id="dSum" style="min-height:110px" placeholder="AI writes 2–3 short bullets — one per line"></textarea>
   <hr class="div">
   <label>Key Points <span style="font-weight:400;color:#aaa">— one per line</span></label>
   <textarea id="dKI" style="min-height:90px" placeholder="AI writes these too"></textarea>
@@ -452,7 +452,7 @@ function runRate(dv,m){
 
 // ── AI write-up (summary + key points) ────────────────────
 const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
-const AI_GUIDE="You are writing the narrative parts of the daily Slack sales report for Ventum House Dubai (premium cycling retail, workshop and café). You are Grant, the store manager, writing in your own voice to the owner and the CEO. Write in the first person ('we', 'I', 'our'); never refer to 'the manager' or to 'notes'. Voice: an experienced British retail operator: direct, confident, commercially sharp, calm. Use trading language naturally (trading, footfall, conversion, ATV, pacing, run rate, LY). Short, clean sentences. No hype, no filler, no clichés, no exclamation marks. Own a weak day plainly and say what drove it; credit a strong one without gushing. Style examples: 'May closed significantly ahead of overall store target, driven heavily through premium retail sales.' 'Coffee remained the weakest department versus target; weekday transaction counts softened.' Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"],\"mtd_summary\":\"...\",\"outlook\":\"...\"}. summary: 3 to 4 sentences on how the day traded against target and LY, what drove it, and the context I give you (footfall reasons, why LY was higher or lower, events, weather), written as my own explanation. key_points: exactly 3 short, specific points that add something the summary does not; where it fits, make one a clear action or focus for tomorrow. mtd_summary: 2 to 3 sentences on the month so far: pacing against target to date and LY, which departments are ahead or behind and by how much; do not repeat the daily summary. outlook: 2 sentences on the run rate: where the month is heading on current pacing versus the full month target, and what daily average is needed from here; end on the focus, not on excuses. British English, plain text, no emojis or markdown. Use only the figures and my context. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand and product names properly (POC, ENVE, Lezyne, XLAB, Ventum, NS1, Tempus). If my context contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
+const AI_GUIDE="You are writing the commentary bullets for the daily Slack sales report for Ventum House Dubai (premium cycling retail, workshop and café). You are Grant, the store manager, writing in your own voice to the owner and the CEO. First person ('we', 'I', 'our'); never say 'the manager' or 'notes'. Voice: experienced British retail operator: direct, calm, commercially sharp. Trading language (footfall, conversion, ATV, pacing, run rate, LY). No hype, no filler, no clichés, no exclamation marks. Own a weak day plainly; credit a strong one without gushing. KEEP IT SHORT: every bullet is one sentence of 20 words or fewer. The report already shows every figure in tables underneath, so do not repeat figures: use at most one number per bullet, and only when it makes the point. Explain why, not what. Return JSON only, exactly this shape: {\"summary\":[\"...\",\"...\",\"...\"],\"key_points\":[\"...\",\"...\",\"...\"],\"mtd_summary\":[\"...\",\"...\"],\"outlook\":\"...\"}. summary: 2 or 3 bullets: how the day traded overall and the main reason, using the context I give you (footfall reasons, why LY was higher or lower, events, weather) as my own explanation. key_points: 3 bullets that add something new; the last one is the focus for tomorrow. mtd_summary: 2 bullets on how the month is pacing and which department is the gap. outlook: one sentence on where the run rate points and what we need from here. British English, plain text, no emojis or markdown. Use only the figures and my context; never invent reasons, events or numbers. Write names properly (POC, ENVE, Lezyne, XLAB, Ventum, NS1, ETS Tempus). If my context contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
 document.addEventListener('DOMContentLoaded',()=>{['rB','sB'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('blur',()=>{if(el.value.trim())el.value=tidy(el.value);});});});
 function setAi(type,msg){
   const el=document.getElementById('aiStatus');
@@ -487,13 +487,18 @@ function aiFacts(){
   }
   return L.join('\n');
 }
+function aiLines(x){
+  if(Array.isArray(x))return x.map(v=>String(v).trim()).filter(Boolean);
+  return String(x||'').split('\n').map(v=>v.trim().replace(/^[•\-]\s*/,'')).filter(Boolean);
+}
 function parseAi(t){
   t=String(t||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim();
-  const i=t.indexOf('{'),j=t.lastIndexOf('}');
-  if(i<0||j<=i){if(t.length>40)return {summary:t,key_points:[]};throw new Error('reply was empty');}
-  const o=JSON.parse(t.slice(i,j+1));
-  if(!o.summary)throw new Error('No summary in reply');
-  return o;
+  const i=t.indexOf('{');
+  if(i<0){if(t.length>40)return {summary:[t]};throw new Error('reply was empty');}
+  const body=t.slice(i);
+  const tries=[body.slice(0,body.lastIndexOf('}')+1),body+'"]}',body+'"}',body+']}',body+'}',body+'"]}]'];
+  for(const c of tries){try{const o=JSON.parse(c);if(o&&o.summary)return o;}catch(e){}}
+  throw new Error('reply was cut off');
 }
 async function copyPromptFallback(notes,why){
   const prompt=AI_GUIDE+'\n\nFigures:\n'+aiFacts()+'\n\nManager notes:\n'+(notes||'(none)');
@@ -522,10 +527,10 @@ async function aiWrite(){
       }catch(e){lastErr=e;}
     }
     if(!o)throw lastErr||new Error('no reply');
-    document.getElementById('dSum').value=o.summary.trim();
+    document.getElementById('dSum').value=aiLines(o.summary).join('\n');
     document.getElementById('dKI').value=(o.key_points||[]).map(x=>String(x).trim()).filter(Boolean).join('\n');
-    if(o.mtd_summary)document.getElementById('dMtd').value=String(o.mtd_summary).trim();
-    if(o.outlook)document.getElementById('dOut').value=String(o.outlook).trim();
+    document.getElementById('dMtd').value=aiLines(o.mtd_summary).join('\n');
+    document.getElementById('dOut').value=aiLines(o.outlook).join('\n');
     setAi('ok','Done. Edit if needed, then Generate Slack Report.');
   }catch(e){
     await copyPromptFallback(notes,'AI did not respond ('+e.message+').');
@@ -636,7 +641,7 @@ function genReport(){
   lines.push(DIV);
   lines.push('*Ventum House – Daily Report*');
   lines.push(slk(d.date));
-  if(sum)lines.push(sum);
+  if(sum){lines.push(DIV);lines.push('*Summary*');aiLines(sum).forEach(l=>lines.push(B+' '+l));}
   lines.push(DIV);
   lines.push('*Daily Performance Summary*');
   // Retail
@@ -723,7 +728,8 @@ function genReport(){
     else narr+=cap(jn(ah))+(ah.length>1?' are':' is')+' ahead of target, while '+jn(bl)+(bl.length>1?' remain':' remains')+' below required pacing. ';
     narr+='Total MTD sales stand at '+ae(mtd.tA)+' against a target of '+ae(mtd.tT)+'.';
     const mtdAi=(document.getElementById('dMtd')||{}).value;
-    lines.push(mtdAi&&mtdAi.trim()?mtdAi.trim():narr);
+    const mtdL=aiLines(mtdAi);
+    if(mtdL.length){lines.push('*Month Commentary*');mtdL.forEach(l=>lines.push(B+' '+l));}else lines.push(narr);
     lines.push(DIV);
   }
   // Run rate & outlook
@@ -736,7 +742,7 @@ function genReport(){
     lines.push(B+' Full month target: '+ae(Math.round(rr.tF)));
     if(rr.left>0&&rr.need>0)lines.push(B+' Required to hit target: '+ae(Math.round(rr.perDay))+' per day for the remaining '+rr.left+' day'+(rr.left!==1?'s':''));
     const outl=(document.getElementById('dOut')||{}).value;
-    if(outl&&outl.trim())lines.push(outl.trim());
+    aiLines(outl).forEach(l=>lines.push('→ '+l));
     lines.push(DIV);
   }
   const report=lines.join('\n');
