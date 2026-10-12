@@ -48,7 +48,7 @@ textarea:focus{outline:none;border-color:#6366f1}
 </head>
 <body>
 <h1>🚴 Ventum House – Daily Report</h1>
-<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v6</span></p>
+<p class="sub">Pulls today's figures from your Google Sheet automatically. <span style="color:#ccc">v7</span></p>
 
 <!-- DATE & SHEET LOAD -->
 <div class="card">
@@ -412,9 +412,32 @@ function calcTotals(){
   document.getElementById('dF').innerHTML='<div class="dl">Footfall</div>'+st('Visitors',f(d.ffTY),'neu')+st('Conversion',d.cvTY||'—','neu');
 }
 
+// ── tidy free-text notes (brands, punctuation, capitals) ──
+const BRANDS=['POC','ENVE','Lezyne','XLAB','Ventum','NS1','GS1','Tempus','SRAM','Shimano','Garmin','Wahoo','Hammerhead','Castelli','Rapha','Assos','Continental','Pirelli','Vittoria','Schwalbe','Maxxis','Specialized','Zipp','DT Swiss','Fizik','Prologo','Tacx','Oakley','Giro','Kask','Muc-Off','Silca','Wolf Tooth','CeramicSpeed','Quarq','Favero','Supacaz','Lizard Skins','Arundel','Tubolito','Deda','Shokz','Sidi','Northwave','Lake','Nalini','Gobik','Pas Normal Studios','MAAP','Le Col','Bianchi','Pinarello','Cervélo','Canyon','Trek','Cannondale','Wilier','Colnago','Factor','BMC','Di2','AXS','eTap','Dura-Ace','Ultegra','105','Red','Force','Rival','Apex','Brooks','Selle Italia','Elite','Kickr','GP5000','Karoo','Varia'];
+function tidy(t){
+  t=String(t||'').replace(/\s+/g,' ').trim();
+  if(!t)return '';
+  t=t.replace(/\s+([,.;:!?])/g,'$1')            // no space before punctuation
+     .replace(/([,;:])(?=\S)/g,'$1 ')            // space after commas
+     .replace(/\.{2,}/g,'.').replace(/,{2,}/g,',').replace(/[.,]\s*,/g,',').replace(/,\s*\./g,'.')
+     .replace(/\.\s*([a-z])/g,(m,c)=>'. '+c.toUpperCase())
+     .replace(/\btires?\b/gi,m=>m[0]==='T'?'Tyre'+(m.length>4?'s':''):'tyre'+(m.length>4?'s':''))
+     .replace(/\s{2,}/g,' ');
+  const lc=['Lake','Red','Force','Elite','Factor','Trek','Apex','105','Rival','Brooks'];
+  BRANDS.forEach(b=>{
+    if(lc.includes(b))return;                    // ordinary words: only fix if already capitalised elsewhere
+    const re=new RegExp('(^|[^A-Za-z0-9])('+b.replace(/[-\s]/g,'[-\\s]?').replace(/é/,'[eé]')+')(?=$|[^A-Za-z0-9])','gi');
+    t=t.replace(re,(m,pre)=>pre+b);
+  });
+  t=t.replace(/[\s,.;:]+$/,'');                  // no trailing punctuation on a list line
+  return t.charAt(0).toUpperCase()+t.slice(1);
+}
+function lc1(t){t=String(t||'');const w=t.split(/[\s,]/)[0];return (w&&w!==w.toLowerCase()&&w!==w.charAt(0).toUpperCase()+w.slice(1).toLowerCase())?t:t.charAt(0).toLowerCase()+t.slice(1);}
+
 // ── AI write-up (summary + key points) ────────────────────
 const AI_URL='https://script.google.com/macros/s/AKfycbw-5EZ0C80WWgKRFdfbKbB-0vpTW64I8qEBsRWV0ENFs9wKXhGqRWbU2mA4SxjwSMRu5Q/exec';
 const AI_GUIDE="You write the narrative parts of the daily Slack sales report for Ventum House Dubai, a premium cycling store with a workshop and café. Return JSON only, in the form {\"summary\":\"...\",\"key_points\":[\"...\",\"...\",\"...\"]}. summary: 3 to 4 sentences covering how the day went against target and last year, what drove it, and the manager's notes (reasons for footfall, why last year was higher or lower, events, weather). key_points: exactly 3 short, specific points that add something the summary does not. British English, plain text, no emojis or markdown. Use only the figures and the notes. Never invent reasons, events or numbers; any number you mention must appear in the figures. Write brand names properly (POC, ENVE, Lezyne, XLAB, Ventum). If a note contradicts the figures, leave it out and make the last key point start with 'Check:' saying what does not match.";
+document.addEventListener('DOMContentLoaded',()=>{['rB','sB'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('blur',()=>{if(el.value.trim())el.value=tidy(el.value);});});});
 function setAi(type,msg){
   const el=document.getElementById('aiStatus');
   const cls={load:'ss-load',ok:'ss-ok',warn:'ss-warn',err:'ss-err'};
@@ -427,7 +450,7 @@ function aiFacts(){
   const d=getData(),ly=window._sheetLY||{},m=window._sheetMTD;
   const pc=(a,t)=>t>0?' ('+(a/t*100).toFixed(1)+'% of target AED '+f(t)+')':' (no target)';
   const vly=(a,l)=>l>0?', last year AED '+f(l)+' ('+((a-l)/l*100>=0?'+':'')+((a-l)/l*100).toFixed(1)+'%)':'';
-  const rB=document.getElementById('rB').value.trim(),sB=document.getElementById('sB').value.trim();
+  const rB=tidy(document.getElementById('rB').value),sB=tidy(document.getElementById('sB').value);
   const del=d.del+d.car+d.kee;
   const L=[];
   if(d.date)L.push('Date: '+dLong(d.date));
@@ -479,8 +502,8 @@ function dLong(s){const[y,m,d]=s.split('-').map(Number);const days=['Sunday','Mo
 // ── narrative generator ───────────────────────────────────
 function writeAll(){
   const d=getData();
-  const rB=document.getElementById('rB').value.trim();
-  const sB=document.getElementById('sB').value.trim();
+  const rB=tidy(document.getElementById('rB').value);
+  const sB=tidy(document.getElementById('sB').value);
   if(d.date&&(rB||sB)){
     var _ndat={rB:rB||'',sB:sB||'',savedAt:new Date().toISOString()};
     try{localStorage.setItem('ventum_notes_'+d.date,JSON.stringify(_ndat));}catch(e){}
@@ -505,37 +528,37 @@ function writeAll(){
   if(!d.rT){
     op='Figures entered for '+slk(d.date)+'. Targets not set — tap Set monthly targets above to enable performance analysis.';
   }else if(tP>=150){
-    op='An exceptional trading day'+(rB?' — '+rB.toLowerCase()+' among the highlights,':' — strong performance across the floor,')+' finishing AED '+f(tGap)+' ahead of target at '+Math.round(tP)+'% achievement. '+(allAbove?'All three departments delivered above their individual targets.':'A standout result.');
+    op='An exceptional trading day'+(rB?' — '+lc1(rB)+' among the highlights,':' — strong performance across the floor,')+' finishing AED '+f(tGap)+' ahead of target at '+Math.round(tP)+'% achievement. '+(allAbove?'All three departments delivered above their individual targets.':'A standout result.');
   }else if(tP>=100&&allAbove){
-    op='A strong day all round — all three departments above target with total store finishing at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' ahead.'+(rB?' Retail featured '+rB.toLowerCase()+'.':'');
+    op='A strong day all round — all three departments above target with total store finishing at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' ahead.'+(rB?' Retail featured '+lc1(rB)+'.':'');
   }else if(tP>=100&&!allAbove){
     const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
     const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
     const abvStr=abv.join(' and ');
-    op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' carried the day despite '+blw.join(' and ')+' finishing below target — total store landed AED '+f(tGap)+' ahead at '+Math.round(tP)+'% achievement.'+(rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
+    op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' carried the day despite '+blw.join(' and ')+' finishing below target — total store landed AED '+f(tGap)+' ahead at '+Math.round(tP)+'% achievement.'+(rB&&rAb?' Retail was driven by '+lc1(rB)+'.':'');
   }else if(noneAbove&&tP<50){
-    op='A very quiet day across all three departments — total store finished at '+Math.round(tP)+'% of target, AED '+f(tGap)+' short.'+(rB?' Retail was limited to '+rB.toLowerCase()+', with no premium transactions to move the needle.':' No premium retail transactions today.')+' '+(sBc?'Service completed '+sBc.toLowerCase()+'.':'Service ran below required levels.')+' The priority for tomorrow is anchoring the day with a strong retail sale.';
+    op='A very quiet day across all three departments — total store finished at '+Math.round(tP)+'% of target, AED '+f(tGap)+' short.'+(rB?' Retail was limited to '+lc1(rB)+', with no premium transactions to move the needle.':' No premium retail transactions today.')+' '+(sBc?'Service completed '+lc1(sBc)+'.':'Service ran below required levels.')+' The priority for tomorrow is anchoring the day with a strong retail sale.';
   }else if(noneAbove){
-    op='All three departments below target today — total store finished at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' short.'+(rB?' Retail had '+rB.toLowerCase()+' but lacked the high-value transactions needed to drive total performance.':' Retail lacked the premium transactions needed to move the store number.')+' Service and coffee both finished below daily pacing.';
+    op='All three departments below target today — total store finished at '+Math.round(tP)+'% achievement, AED '+f(tGap)+' short.'+(rB?' Retail had '+lc1(rB)+' but lacked the high-value transactions needed to drive total performance.':' Retail lacked the premium transactions needed to move the store number.')+' Service and coffee both finished below daily pacing.';
   }else{
     const abv=[rAb?'retail':null,sAb?'service':null,cAb?'coffee':null].filter(Boolean);
     const blw=[!rAb?'retail':null,!sAb?'service':null,!cAb?'coffee':null].filter(Boolean);
     if(tAb){
       const abvStr=abv.join(' and ');
-      op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' pushed total store above daily pacing at '+Math.round(tP)+'% achievement despite '+blw.join(' and ')+' below target.'+(rB&&rAb?' Retail featured '+rB.toLowerCase()+'.':'');
+      op=abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' pushed total store above daily pacing at '+Math.round(tP)+'% achievement despite '+blw.join(' and ')+' below target.'+(rB&&rAb?' Retail featured '+lc1(rB)+'.':'');
     }else{
       const mainBlame=!rAb?'retail':!sAb?'service':'coffee';
       const abvStr=abv.length?abv.join(' and '):null;
       const lead=abvStr?abvStr.charAt(0).toUpperCase()+abvStr.slice(1)+' above target, but '+mainBlame:mainBlame.charAt(0).toUpperCase()+mainBlame.slice(1);
       const retailNote=mainBlame==='retail'&&d.rTx<=3?' with only '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' on the day':' below target';
-      op=lead+retailNote+' left the store AED '+f(tGap)+' short at '+Math.round(tP)+'% achievement.'+(rB&&!rAb?' Retail included '+rB.toLowerCase()+' but did not generate enough volume.':rB&&rAb?' Retail was driven by '+rB.toLowerCase()+'.':'');
+      op=lead+retailNote+' left the store AED '+f(tGap)+' short at '+Math.round(tP)+'% achievement.'+(rB&&!rAb?' Retail included '+lc1(rB)+' but did not generate enough volume.':rB&&rAb?' Retail was driven by '+lc1(rB)+'.':'');
     }
   }
 
   const kp=[];
-  if(rP>=200)kp.push(rB?rB.charAt(0).toUpperCase()+rB.slice(1)+' — exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
-  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' — '+rB.toLowerCase():'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV.');
-  else if(d.rA>0)kp.push('Retail below target at '+Math.round(rP)+'% — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+', AED '+f(Math.abs(Math.round(d.rA-d.rT)))+' short.'+(rB?' '+rB.charAt(0).toUpperCase()+rB.slice(1)+'.':''));
+  if(rP>=200)kp.push(rB?rB+' — exceptional retail day, '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV':'Retail exceptional today — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV');
+  else if(rP>=100)kp.push('Retail ahead of target'+(rB?' — '+lc1(rB):'')+'. '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+' at AED '+f(rATV)+' ATV.');
+  else if(d.rA>0)kp.push('Retail below target at '+Math.round(rP)+'% — '+d.rTx+' transaction'+(d.rTx!==1?'s':'')+', AED '+f(Math.abs(Math.round(d.rA-d.rT)))+' short.'+(rB?' '+rB+'.':''));
   if(d.sT>0){
     if(sAb)kp.push('Service above target at '+Math.round(sP)+'% — '+d.sTx+' job'+(d.sTx!==1?'s':'')+', AED '+f(sATV)+' ATV.');
     else if(d.sA>0)kp.push('Service '+d.sTx+' job'+(d.sTx!==1?'s':'')+' for AED '+f(d.sA)+' ('+Math.round(sP)+'% of target).');
@@ -562,8 +585,8 @@ function genReport(){
   if(!document.getElementById('dSum').value.trim()&&!document.getElementById('dKI').value.trim()){writeAll();}
   const d=getData(),ly=window._sheetLY||{},m=window._sheetMTD;
   const sum=document.getElementById('dSum').value.trim();
-  const rB=document.getElementById('rB').value.trim();
-  const sB=document.getElementById('sB').value.trim();
+  const rB=tidy(document.getElementById('rB').value);
+  const sB=tidy(document.getElementById('sB').value);
   const ki=document.getElementById('dKI').value.trim();
   const pc=(a,t)=>t>0?Math.round(a/t*100)+'%':'—';
   const ch=(a,l)=>{if(!(l>0))return '';const v=(a-l)/l*100;return (v>=0?'+':'')+Math.round(v)+'%';};
